@@ -17,6 +17,9 @@
 
 
 #include "Shader.h"
+#include "Cube.h"
+#include "Sphere.h"
+
 
 #include "logger.h"
 
@@ -69,15 +72,17 @@ int main(int argc, char *argv[])
     //TODO
     //From here you can load your OpenGL objects, like VBO, Shaders, etc.
 
+    //Shaders
+
     float vPosition[]={-1.0,-1.0,0,
                         1.0,-1.0,0,
-                        0.5,1.0,0};
+                        0.0,1.0,0};
 
-    float vColor[]={0.0,1.0,0.0,
+    float vColor[]={1.0,0.0,0.0,
                     0.0,1.0,0.0,
                     0.0,0.0,1.0};
 
-
+    Cube cube;
 
     //We generate our buffer
     GLuint myBuffer;
@@ -87,16 +92,16 @@ int main(int argc, char *argv[])
     //Remind to close this buffer for not misusing it(glBindBuffer(GL_ARRAY_BUFFER, 0);)
     glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
     //2 coordinates per UV, 3 per normal and 3 per position. We do not yet copy these data (hence the NULL)
-    glBufferData(GL_ARRAY_BUFFER, 2 * 3 * sizeof(float)*3, NULL, GL_DYNAMIC_DRAW); 
+    glBufferData(GL_ARRAY_BUFFER, 2 * cube.getNbVertices() * sizeof(float)*3, NULL, GL_DYNAMIC_DRAW); 
 
     //Copy one by one the data (first positions, then normals and finally UV).
     //We remind that we do not necessarily need all of these variables, and that other variables may be needed for your usecase
     //parameters : Target, buffer offset, size to copy, CPU data.
     
     //We consider that each data are typed « float* » with sizeof(float)*nbVertices*nbCoordinate bytes where nbCoordinate = 2 or 3 following the number of components per value for this variable
-    glBufferSubData(GL_ARRAY_BUFFER, 0,                  3*sizeof(float)*3, vPosition);
-    glBufferSubData(GL_ARRAY_BUFFER, 3*sizeof(float)*3,  3*sizeof(float)*3, vColor);
-    // glBufferSubData(GL_ARRAY_BUFFER, 3*3sizeof(float)*nbVertices, 2*sizeof(float)*nbVertices, uvData);
+    glBufferSubData(GL_ARRAY_BUFFER, 0,                  cube.getNbVertices()*sizeof(float)*3, cube.getVertices());
+    glBufferSubData(GL_ARRAY_BUFFER, cube.getNbVertices()*sizeof(float)*3,  cube.getNbVertices()*sizeof(float)*3, cube.getNormals());
+    //glBufferSubData(GL_ARRAY_BUFFER, 3*3sizeof(float)*nbVertices, 2*sizeof(float)*nbVertices, uvData);
     glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the buffer
 
     //TODO do your thing
@@ -116,31 +121,12 @@ int main(int argc, char *argv[])
     //TODO do something with your shader
 
     
-    glm::mat4 cameraMatrix(1.0f); //Camera matrix. If you want a 3D projection matrix, look at
-    // ,→ glm::lookAt : glm::mat4 mat = glm::lookAt(EyePosition, Center, UpVector) where each
-    // ,→ parameters is typed glm::vec3 : glm::vec3 vec(x, y, z); (you can do directly in the
-    // ,→ parameters : glm::vec3(x, y, z) to create glm::vec3 on the fly)
-
-    glm::mat4 matrix(1.0f); //Defines an identity matrix
-    // 1 0 0 0
-    // 0 1 0 0
-    // 0 0 1 0
-    // 0 0 0 1
-
-    //The most left transformation presented in equation (1) has to be done first
-    // matrix = glm::translate(matrix, glm::vec3(transX, transY, transZ)); //We translate
-    // matrix = glm::rotate(matrix, angleRadian, glm::vec3(axeX, axeY, axeZ)); //We rotate via an
-    // ,→ axis and an angle around this axis
-
-    matrix = glm::scale(matrix, glm::vec3(0.5f, 0.5f, 1.0f)); //And then we scale
-    matrix = glm::translate(matrix, glm::vec3(0.5f, 0, 0)); //We translate
-
-    glm::mat4 mvp = cameraMatrix * matrix; //Finally we multiply all the matrices. In C++ you
-    // ,→ can do this because glm::mat4 has redefined the operator* to work with glm::mat4
-    // ,→ objects (and even with a glm::mat4 and a glm::vec4).
     
+    float angleSquare = 0;
 
     bool isOpened = true;
+
+
 
     //Main application loop
     while(isOpened)
@@ -171,17 +157,38 @@ int main(int argc, char *argv[])
         //Clear the screen : the depth buffer and the color buffer
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
+        glm::mat4 cameraMatrix(1.0f); //Camera matrix. If you want a 3D projection matrix, look at
+        // ,→ glm::lookAt : glm::mat4 mat = glm::lookAt(EyePosition, Center, UpVector) where each
+        // ,→ parameters is typed glm::vec3 : glm::vec3 vec(x, y, z); (you can do directly in the
+        // ,→ parameters : glm::vec3(x, y, z) to create glm::vec3 on the fly)
+
+        glm::mat4 matrix(1.0f); //Defines an identity matrix
+        // 1 0 0 0
+        // 0 1 0 0
+        // 0 0 1 0
+        // 0 0 0 1
+
+        //The most left transformation presented in equation (1) has to be done first
+        // matrix = glm::translate(matrix, glm::vec3(transX, transY, transZ)); //We translate
+        //  //We rotate via an
+        // ,→ axis and an angle around this axis
+
+        // matrix = glm::scale(matrix, glm::vec3(0.5f, 0.5f, 1.0f)); //And then we scale
+        // matrix = glm::translate(matrix, glm::vec3(0.5f, 0, 0)); //We translate
+
+        matrix = glm::rotate(matrix, glm::radians(angleSquare), glm::vec3(0, 1, 0));
+        matrix = glm::rotate(matrix, glm::radians(angleSquare), glm::vec3(1, 0, 0));
+
+        angleSquare >= 360 ? angleSquare=0 : angleSquare++; 
+
+        glm::mat4 mvp = cameraMatrix * matrix; //Finally we multiply all the matrices. In C++ you
+        // ,→ can do this because glm::mat4 has redefined the operator* to work with glm::mat4
+        // ,→ objects (and even with a glm::mat4 and a glm::vec4).
 
 
         glUseProgram(shader->getProgramID());
         { //The brackets are useless but help at the clarity of the code
             glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
-
-            GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); //Get the "uScale" location (ID)
-            glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(matrix)); //Set "uScale" at 0.5f. Remark : we use glUniform1f for sending a
-            // ,→ (1) float (f). For other kinds of uniform (integers, vectors, etc.) see the
-            // ,→ documentation
-
 
             //Work with vPosition
             GLint vPosition = glGetAttribLocation(shader->getProgramID(), "vPosition");
@@ -193,17 +200,22 @@ int main(int argc, char *argv[])
             // ,→ class.
             glEnableVertexAttribArray(vPosition); //Enable "vPosition"
             //Work with vColor
-            GLint vColor = glGetAttribLocation(shader->getProgramID(), "vColor");
+            GLint vColor = glGetAttribLocation(shader->getProgramID(), "vNormal");
             //Colors start at 9*sizeof(float) (3*nbVertices*sizeof(float)) for the second
             // ,→ version of the VBO. For the first version of the VBO, both the stride
             // ,→ and the offset should be 3*sizeof(float) here
-            glVertexAttribPointer(vColor, 3, GL_FLOAT, 0, 3*sizeof(float), INDICE_TO_PTR(9*sizeof(float))); //Convert an indice to void* : (void*)(x)
+            glVertexAttribPointer(vColor, 3, GL_FLOAT, 0, 3*sizeof(float), INDICE_TO_PTR(cube.getNbVertices()*3*sizeof(float))); //Convert an indice to void* : (void*)(x)
             glEnableVertexAttribArray(vColor); //Enable"vColor"
-            glDrawArrays(GL_TRIANGLES, 0, 3); //Draw the triangle (three points which
+            glDrawArrays(GL_TRIANGLES, 0, cube.getNbVertices()); //Draw the triangle (three points which
             // ,→ starts at offset = 0 in the VBO). GL_TRIANGLES tells that we are reading
             // ,→ three points per three points to form a triangle. Other kind of "
             // ,→ reading" exist, see glDrawArrays for more details.
             glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
+            
+            GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); //Get the "uScale" location (ID)
+            glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); //Set "uScale" at 0.5f. Remark : we use glUniform1f for sending a
+            // ,→ (1) float (f). For other kinds of uniform (integers, vectors, etc.) see the
+            // ,→ documentation
         }
         glUseProgram(0); //Close the program. This is heavy for the GPU. In reality we do this
         // ,→ only if we have to CHANGE the shader (hence we cache the current in-use shader)

@@ -2,7 +2,7 @@
 precision mediump float;
 
 attribute vec3 vPosition; //Depending who compiles, these variables are not "attribute" but "in". In this version (130) both are accepted. in should be used later
-attribute vec3 vColor;
+attribute vec3 vNormal;
 
 uniform mat4 uMVP;
 
@@ -13,5 +13,5 @@ varying vec4 varyColor; //Depending who compiles, these variables are not "varyi
 void main()
 {
 	gl_Position = uMVP * vec4(vPosition, 1.0); //We need to put vPosition as a vec4. Because vPosition is a vec3, we need one more value (w) which is here 1.0. Hence x and y go from -w to w hence -1 to +1. Premultiply this variable if you want to transform the position.
-    varyColor = vec4(vColor, 1.0);
+    varyColor = vec4((vNormal+vec3(1,1,1))/2.0, 1.0);
 }
