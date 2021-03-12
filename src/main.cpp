@@ -7,9 +7,14 @@
 #include <GL/gl.h>
 
 //GML libraries
+//Necessary includes for both using glm::<type> but also for the corresponding functions
+//The documentation of glm is a bit hard to read because it is based on what is called
+//,→ template. Send me an email if you can’t use it properly for a specific use.
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp> 
 #include <glm/gtc/type_ptr.hpp>
+
+
 
 #include "Shader.h"
 
@@ -64,11 +69,11 @@ int main(int argc, char *argv[])
     //TODO
     //From here you can load your OpenGL objects, like VBO, Shaders, etc.
 
-    float vPosition[]={-1.0,-1.0,0.0,
-                        1.0,-1.0,0.0,
-                        0.0,1.0,0.0};
+    float vPosition[]={-1.0,-1.0,0,
+                        1.0,-1.0,0,
+                        0.5,1.0,0};
 
-    float vColor[]={1.0,0.0,0.0,
+    float vColor[]={0.0,1.0,0.0,
                     0.0,1.0,0.0,
                     0.0,0.0,1.0};
 
@@ -109,11 +114,31 @@ int main(int argc, char *argv[])
     }
     //....
     //TODO do something with your shader
-   
-    // float uScale;
 
     
-    //TODO
+    glm::mat4 cameraMatrix(1.0f); //Camera matrix. If you want a 3D projection matrix, look at
+    // ,→ glm::lookAt : glm::mat4 mat = glm::lookAt(EyePosition, Center, UpVector) where each
+    // ,→ parameters is typed glm::vec3 : glm::vec3 vec(x, y, z); (you can do directly in the
+    // ,→ parameters : glm::vec3(x, y, z) to create glm::vec3 on the fly)
+
+    glm::mat4 matrix(1.0f); //Defines an identity matrix
+    // 1 0 0 0
+    // 0 1 0 0
+    // 0 0 1 0
+    // 0 0 0 1
+
+    //The most left transformation presented in equation (1) has to be done first
+    // matrix = glm::translate(matrix, glm::vec3(transX, transY, transZ)); //We translate
+    // matrix = glm::rotate(matrix, angleRadian, glm::vec3(axeX, axeY, axeZ)); //We rotate via an
+    // ,→ axis and an angle around this axis
+
+    matrix = glm::scale(matrix, glm::vec3(0.5f, 0.5f, 1.0f)); //And then we scale
+    matrix = glm::translate(matrix, glm::vec3(0.5f, 0, 0)); //We translate
+
+    glm::mat4 mvp = cameraMatrix * matrix; //Finally we multiply all the matrices. In C++ you
+    // ,→ can do this because glm::mat4 has redefined the operator* to work with glm::mat4
+    // ,→ objects (and even with a glm::mat4 and a glm::vec4).
+    
 
     bool isOpened = true;
 
@@ -152,8 +177,8 @@ int main(int argc, char *argv[])
         { //The brackets are useless but help at the clarity of the code
             glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
 
-            GLint uScale = glGetUniformLocation(shader->getProgramID(), "uScale"); //Get the "uScale" location (ID)
-            glUniform1f(uScale, 0.5f); //Set "uScale" at 0.5f. Remark : we use glUniform1f for sending a
+            GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); //Get the "uScale" location (ID)
+            glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(matrix)); //Set "uScale" at 0.5f. Remark : we use glUniform1f for sending a
             // ,→ (1) float (f). For other kinds of uniform (integers, vectors, etc.) see the
             // ,→ documentation
 
