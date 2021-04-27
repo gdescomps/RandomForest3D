@@ -10,8 +10,20 @@ class Geometry
     public:
         /* \brief The constructor.*/
         Geometry();
+
+        /* \brief Move constructor*/
+        Geometry(Geometry&& geom);
+
+        /* \brief Copy constructor*/
+        Geometry(const Geometry& copy);
+
+        /* \brief Copy assignment*/
+        Geometry& operator=(const Geometry& geom);
+
         /* \brief Destructor. Destroy the data */
         virtual ~Geometry();
+
+
 
         /* \brief Get the vertices data of the geometry
          * \return const array on the vertices data. Use getNbVertices to get how many vertices the array contains (size(array) == 3*nbVertices) */
