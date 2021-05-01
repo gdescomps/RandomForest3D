@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
                     0.0,1.0,0.0,
                     0.0,0.0,1.0};
 
-    Cube cube;
+    Sphere sphere(32,32);
 
     //We generate our buffer
     GLuint myBuffer;
@@ -92,15 +92,15 @@ int main(int argc, char *argv[])
     //Remind to close this buffer for not misusing it(glBindBuffer(GL_ARRAY_BUFFER, 0);)
     glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
     //2 coordinates per UV, 3 per normal and 3 per position. We do not yet copy these data (hence the NULL)
-    glBufferData(GL_ARRAY_BUFFER, 2 * cube.getNbVertices() * sizeof(float)*3, NULL, GL_DYNAMIC_DRAW); 
+    glBufferData(GL_ARRAY_BUFFER, 2 * sphere.getNbVertices() * sizeof(float)*3, NULL, GL_DYNAMIC_DRAW); 
 
     //Copy one by one the data (first positions, then normals and finally UV).
     //We remind that we do not necessarily need all of these variables, and that other variables may be needed for your usecase
     //parameters : Target, buffer offset, size to copy, CPU data.
     
     //We consider that each data are typed « float* » with sizeof(float)*nbVertices*nbCoordinate bytes where nbCoordinate = 2 or 3 following the number of components per value for this variable
-    glBufferSubData(GL_ARRAY_BUFFER, 0,                  cube.getNbVertices()*sizeof(float)*3, cube.getVertices());
-    glBufferSubData(GL_ARRAY_BUFFER, cube.getNbVertices()*sizeof(float)*3,  cube.getNbVertices()*sizeof(float)*3, cube.getNormals());
+    glBufferSubData(GL_ARRAY_BUFFER, 0,                  sphere.getNbVertices()*sizeof(float)*3, sphere.getVertices());
+    glBufferSubData(GL_ARRAY_BUFFER, sphere.getNbVertices()*sizeof(float)*3,  sphere.getNbVertices()*sizeof(float)*3, sphere.getNormals());
     //glBufferSubData(GL_ARRAY_BUFFER, 3*3sizeof(float)*nbVertices, 2*sizeof(float)*nbVertices, uvData);
     glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the buffer
 
@@ -204,9 +204,9 @@ int main(int argc, char *argv[])
             //Colors start at 9*sizeof(float) (3*nbVertices*sizeof(float)) for the second
             // ,→ version of the VBO. For the first version of the VBO, both the stride
             // ,→ and the offset should be 3*sizeof(float) here
-            glVertexAttribPointer(vColor, 3, GL_FLOAT, 0, 3*sizeof(float), INDICE_TO_PTR(cube.getNbVertices()*3*sizeof(float))); //Convert an indice to void* : (void*)(x)
+            glVertexAttribPointer(vColor, 3, GL_FLOAT, 0, 3*sizeof(float), INDICE_TO_PTR(sphere.getNbVertices()*3*sizeof(float))); //Convert an indice to void* : (void*)(x)
             glEnableVertexAttribArray(vColor); //Enable"vColor"
-            glDrawArrays(GL_TRIANGLES, 0, cube.getNbVertices()); //Draw the triangle (three points which
+            glDrawArrays(GL_TRIANGLES, 0, sphere.getNbVertices()); //Draw the triangle (three points which
             // ,→ starts at offset = 0 in the VBO). GL_TRIANGLES tells that we are reading
             // ,→ three points per three points to form a triangle. Other kind of "
             // ,→ reading" exist, see glDrawArrays for more details.
