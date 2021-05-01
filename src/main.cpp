@@ -69,19 +69,9 @@ int main(int argc, char *argv[])
 
     glEnable(GL_DEPTH_TEST); //Active the depth test
 
-    //TODO
+
     //From here you can load your OpenGL objects, like VBO, Shaders, etc.
-
     //Shaders
-
-    float vPosition[]={-1.0,-1.0,0,
-                        1.0,-1.0,0,
-                        0.0,1.0,0};
-
-    float vColor[]={1.0,0.0,0.0,
-                    0.0,1.0,0.0,
-                    0.0,0.0,1.0};
-
     Cube cube;
 
     //We generate our buffer
@@ -104,11 +94,9 @@ int main(int argc, char *argv[])
     //glBufferSubData(GL_ARRAY_BUFFER, 3*3sizeof(float)*nbVertices, 2*sizeof(float)*nbVertices, uvData);
     glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the buffer
 
-    //TODO do your thing
-
     FILE* vertFile = fopen("Shaders/color.vert", "r");
     FILE* fragFile = fopen("Shaders/color.frag", "r");
-    //TODO test if the files are correct (testing NULL)
+ 
     Shader* shader = Shader::loadFromFiles(vertFile, fragFile); //Load the files and, create the GPU program
     fclose(vertFile);
     fclose(fragFile);
@@ -117,17 +105,10 @@ int main(int argc, char *argv[])
     //Print an error message (an error occured while compiling). The message is also,displayed on screen by loadFromFiles function
     return EXIT_FAILURE;
     }
-    //....
-    //TODO do something with your shader
-
-    
-    
+      
     float angleSquare = 0;
 
     bool isOpened = true;
-
-
-
     //Main application loop
     while(isOpened)
     {
@@ -175,7 +156,6 @@ int main(int argc, char *argv[])
 
         // matrix = glm::scale(matrix, glm::vec3(0.5f, 0.5f, 1.0f)); //And then we scale
         // matrix = glm::translate(matrix, glm::vec3(0.5f, 0, 0)); //We translate
-
         matrix = glm::rotate(matrix, glm::radians(angleSquare), glm::vec3(0, 1, 0));
         matrix = glm::rotate(matrix, glm::radians(angleSquare), glm::vec3(1, 0, 0));
 
@@ -220,14 +200,6 @@ int main(int argc, char *argv[])
         glUseProgram(0); //Close the program. This is heavy for the GPU. In reality we do this
         // ,→ only if we have to CHANGE the shader (hence we cache the current in-use shader)
         // ,→ . For this course however the performances are not so important.
-        //....
-
-
-        //TODO rendering
-        
-
-        
-        
 
         //Display on screen (swap the buffer on screen and the buffer you are drawing on)
         SDL_GL_SwapWindow(window);
