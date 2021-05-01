@@ -30,7 +30,32 @@
 #define INDICE_TO_PTR(x) ((void*)(x))
 
 
-void draw(Shader* shader, Geometry& object, float& angleSquare){
+GLuint generateVBO(const Geometry& geometry){
+    //We generate our buffer
+    GLuint myBuffer;
+    glGenBuffers(1, &myBuffer);
+
+    //We fill this buffer as a GL_ARRAY_BUFFER (buffer containing vertices (points) information). 
+    //Remind to close this buffer for not misusing it(glBindBuffer(GL_ARRAY_BUFFER, 0);)
+    glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
+    //2 coordinates per UV, 3 per normal and 3 per position. We do not yet copy these data (hence the NULL)
+    glBufferData(GL_ARRAY_BUFFER, 2 * geometry.getNbVertices() * sizeof(float)*3, NULL, GL_DYNAMIC_DRAW); 
+
+    //Copy one by one the data (first positions, then normals and finally UV).
+    //We remind that we do not necessarily need all of these variables, and that other variables may be needed for your usecase
+    //parameters : Target, buffer offset, size to copy, CPU data.
+    
+    //We consider that each data are typed « float* » with sizeof(float)*nbVertices*nbCoordinate bytes where nbCoordinate = 2 or 3 following the number of components per value for this variable
+    glBufferSubData(GL_ARRAY_BUFFER, 0,                  geometry.getNbVertices()*sizeof(float)*3, geometry.getVertices());
+    glBufferSubData(GL_ARRAY_BUFFER, geometry.getNbVertices()*sizeof(float)*3,  geometry.getNbVertices()*sizeof(float)*3, geometry.getNormals());
+    //glBufferSubData(GL_ARRAY_BUFFER, 3*3sizeof(float)*nbVertices, 2*sizeof(float)*nbVertices, uvData);
+    glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the buffer
+    return myBuffer;
+}
+
+void draw(Shader* shader, Geometry& object, float& angleSquare, GLuint& myBuffer){
+
+    glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
 
     glm::mat4 cameraMatrix(1.0f); //Camera matrix. If you want a 3D projection matrix, look at
     // ,→ glm::lookAt : glm::mat4 mat = glm::lookAt(EyePosition, Center, UpVector) where each
@@ -89,6 +114,11 @@ void draw(Shader* shader, Geometry& object, float& angleSquare){
             // ,→ (1) float (f). For other kinds of uniform (integers, vectors, etc.) see the
             // ,→ documentation
         }
+    glUseProgram(0); //Close the program. This is heavy for the GPU. In reality we do this
+    // ,→ only if we have to CHANGE the shader (hence we cache the current in-use shader)
+    // ,→ . For this course however the performances are not so important.
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
 }
 
 int main(int argc, char *argv[])
@@ -136,25 +166,7 @@ int main(int argc, char *argv[])
     //Shaders
     Cube cube;
 
-    //We generate our buffer
-    GLuint myBuffer;
-    glGenBuffers(1, &myBuffer);
-
-    //We fill this buffer as a GL_ARRAY_BUFFER (buffer containing vertices (points) information). 
-    //Remind to close this buffer for not misusing it(glBindBuffer(GL_ARRAY_BUFFER, 0);)
-    glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
-    //2 coordinates per UV, 3 per normal and 3 per position. We do not yet copy these data (hence the NULL)
-    glBufferData(GL_ARRAY_BUFFER, 2 * cube.getNbVertices() * sizeof(float)*3, NULL, GL_DYNAMIC_DRAW); 
-
-    //Copy one by one the data (first positions, then normals and finally UV).
-    //We remind that we do not necessarily need all of these variables, and that other variables may be needed for your usecase
-    //parameters : Target, buffer offset, size to copy, CPU data.
-    
-    //We consider that each data are typed « float* » with sizeof(float)*nbVertices*nbCoordinate bytes where nbCoordinate = 2 or 3 following the number of components per value for this variable
-    glBufferSubData(GL_ARRAY_BUFFER, 0,                  cube.getNbVertices()*sizeof(float)*3, cube.getVertices());
-    glBufferSubData(GL_ARRAY_BUFFER, cube.getNbVertices()*sizeof(float)*3,  cube.getNbVertices()*sizeof(float)*3, cube.getNormals());
-    //glBufferSubData(GL_ARRAY_BUFFER, 3*3sizeof(float)*nbVertices, 2*sizeof(float)*nbVertices, uvData);
-    glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the buffer
+    GLuint myBuffer = generateVBO(cube);
 
     FILE* vertFile = fopen("Shaders/color.vert", "r");
     FILE* fragFile = fopen("Shaders/color.frag", "r");
@@ -200,17 +212,9 @@ int main(int argc, char *argv[])
         //Clear the screen : the depth buffer and the color buffer
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
+
+        draw(shader, cube, angleSquare, myBuffer);
         
-        glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
-
-        draw(shader, cube, angleSquare);
-            
-        glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
-            
-        glUseProgram(0); //Close the program. This is heavy for the GPU. In reality we do this
-        // ,→ only if we have to CHANGE the shader (hence we cache the current in-use shader)
-        // ,→ . For this course however the performances are not so important.
-
         //Display on screen (swap the buffer on screen and the buffer you are drawing on)
         SDL_GL_SwapWindow(window);
 
