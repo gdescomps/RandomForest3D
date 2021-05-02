@@ -30,14 +30,16 @@
 #define INDICE_TO_PTR(x) ((void*)(x))
 
 
-GLuint generateVBO(const Geometry& geometry){
+GLuint generateVAO(const Geometry& geometry){
     //We generate our buffer
-    GLuint myBuffer;
-    glGenBuffers(1, &myBuffer);
+    GLuint VBO, VAO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
 
     //We fill this buffer as a GL_ARRAY_BUFFER (buffer containing vertices (points) information). 
     //Remind to close this buffer for not misusing it(glBindBuffer(GL_ARRAY_BUFFER, 0);)
-    glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
     //2 coordinates per UV, 3 per normal and 3 per position. We do not yet copy these data (hence the NULL)
     glBufferData(GL_ARRAY_BUFFER, 2 * geometry.getNbVertices() * sizeof(float)*3, NULL, GL_DYNAMIC_DRAW); 
 
@@ -49,14 +51,37 @@ GLuint generateVBO(const Geometry& geometry){
     glBufferSubData(GL_ARRAY_BUFFER, 0,                  geometry.getNbVertices()*sizeof(float)*3, geometry.getVertices());
     glBufferSubData(GL_ARRAY_BUFFER, geometry.getNbVertices()*sizeof(float)*3,  geometry.getNbVertices()*sizeof(float)*3, geometry.getNormals());
     //glBufferSubData(GL_ARRAY_BUFFER, 3*3sizeof(float)*nbVertices, 2*sizeof(float)*nbVertices, uvData);
+    
+
+    //Work with vPosition
+    //GLint vPosition = glGetAttribLocation(shader->getProgramID(), "vPosition");
+    glVertexAttribPointer(0, 3, GL_FLOAT, 0, 3*sizeof(float), 0); //It is here that you
+    // ,→ select how the Shader reads the VBO. Indeed the 5th parameter is called
+    // ,→ "stride" : it is the distance in bytes between two values for the same
+    // ,→ kind or variable. If the values are side-by-side, stride == 0. Here we
+    // ,→ need to set to 3*sizeof(float) for the first version of the VBO seen in
+    // ,→ class.
+    glEnableVertexAttribArray(0); //Enable "vPosition"
+    //Work with vColor
+    //GLint vColor = glGetAttribLocation(shader->getProgramID(), "vNormal");
+    //Colors start at 9*sizeof(float) (3*nbVertices*sizeof(float)) for the second
+    // ,→ version of the VBO. For the first version of the VBO, both the stride
+    // ,→ and the offset should be 3*sizeof(float) here
+    glVertexAttribPointer(1, 3, GL_FLOAT, 0, 3*sizeof(float), INDICE_TO_PTR(geometry.getNbVertices()*3*sizeof(float))); //Convert an indice to void* : (void*)(x)
+    glEnableVertexAttribArray(1); //Enable"vColor"
+
+
     glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the buffer
-    return myBuffer;
+
+    glBindVertexArray(0);
+    return VAO;
 }
 
-void draw(Shader* shader, Geometry& object, float& angleSquare, GLuint& myBuffer){
+void draw(Shader* shader, Geometry& object, float& angleSquare, GLuint& VAO){
 
-    glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
+    // glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
 
+    
     glm::mat4 cameraMatrix(1.0f); //Camera matrix. If you want a 3D projection matrix, look at
     // ,→ glm::lookAt : glm::mat4 mat = glm::lookAt(EyePosition, Center, UpVector) where each
     // ,→ parameters is typed glm::vec3 : glm::vec3 vec(x, y, z); (you can do directly in the
@@ -85,40 +110,26 @@ void draw(Shader* shader, Geometry& object, float& angleSquare, GLuint& myBuffer
     // ,→ objects (and even with a glm::mat4 and a glm::vec4).
 
     glUseProgram(shader->getProgramID());
-        { //The brackets are useless but help at the clarity of the code
-
-            //Work with vPosition
-            GLint vPosition = glGetAttribLocation(shader->getProgramID(), "vPosition");
-            glVertexAttribPointer(vPosition, 3, GL_FLOAT, 0, 3*sizeof(float), 0); //It is here that you
-            // ,→ select how the Shader reads the VBO. Indeed the 5th parameter is called
-            // ,→ "stride" : it is the distance in bytes between two values for the same
-            // ,→ kind or variable. If the values are side-by-side, stride == 0. Here we
-            // ,→ need to set to 3*sizeof(float) for the first version of the VBO seen in
-            // ,→ class.
-            glEnableVertexAttribArray(vPosition); //Enable "vPosition"
-            //Work with vColor
-            GLint vColor = glGetAttribLocation(shader->getProgramID(), "vNormal");
-            //Colors start at 9*sizeof(float) (3*nbVertices*sizeof(float)) for the second
-            // ,→ version of the VBO. For the first version of the VBO, both the stride
-            // ,→ and the offset should be 3*sizeof(float) here
-            glVertexAttribPointer(vColor, 3, GL_FLOAT, 0, 3*sizeof(float), INDICE_TO_PTR(object.getNbVertices()*3*sizeof(float))); //Convert an indice to void* : (void*)(x)
-            glEnableVertexAttribArray(vColor); //Enable"vColor"
-            glDrawArrays(GL_TRIANGLES, 0, object.getNbVertices()); //Draw the triangle (three points which
-            // ,→ starts at offset = 0 in the VBO). GL_TRIANGLES tells that we are reading
-            // ,→ three points per three points to form a triangle. Other kind of "
-            // ,→ reading" exist, see glDrawArrays for more details.
-            glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
+    glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
             
             GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); //Get the "uScale" location (ID)
             glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); //Set "uScale" at 0.5f. Remark : we use glUniform1f for sending a
             // ,→ (1) float (f). For other kinds of uniform (integers, vectors, etc.) see the
             // ,→ documentation
-        }
+
+            glDrawArrays(GL_TRIANGLES, 0, object.getNbVertices()); //Draw the triangle (three points which
+            // ,→ starts at offset = 0 in the VBO). GL_TRIANGLES tells that we are reading
+            // ,→ three points per three points to form a triangle. Other kind of "
+            // ,→ reading" exist, see glDrawArrays for more details.
+            // glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
+            
+            
+    glBindVertexArray(0);
     glUseProgram(0); //Close the program. This is heavy for the GPU. In reality we do this
     // ,→ only if we have to CHANGE the shader (hence we cache the current in-use shader)
     // ,→ . For this course however the performances are not so important.
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
+    // glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
 }
 
 int main(int argc, char *argv[])
@@ -166,7 +177,7 @@ int main(int argc, char *argv[])
     //Shaders
     Cube cube;
 
-    GLuint myBuffer = generateVBO(cube);
+    GLuint cubeVAO = generateVAO(cube);
 
     FILE* vertFile = fopen("Shaders/color.vert", "r");
     FILE* fragFile = fopen("Shaders/color.frag", "r");
@@ -184,6 +195,10 @@ int main(int argc, char *argv[])
 
     bool isOpened = true;
     //Main application loop
+
+    // uncomment this call to draw in wireframe polygons.
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
     while(isOpened)
     {
         //Time in ms telling us when this frame started. Useful for keeping a fix framerate
@@ -213,7 +228,7 @@ int main(int argc, char *argv[])
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 
-        draw(shader, cube, angleSquare, myBuffer);
+        draw(shader, cube, angleSquare, cubeVAO);
         
         //Display on screen (swap the buffer on screen and the buffer you are drawing on)
         SDL_GL_SwapWindow(window);
@@ -228,7 +243,7 @@ int main(int argc, char *argv[])
     
     delete shader; //Delete the shader (usually at the end of the program)
 
-    glDeleteBuffers(1, &myBuffer); //Delete at the end the buffer
+    glDeleteBuffers(1, &cubeVAO); //Delete at the end the buffer
 
     //Free everything
     if(context != NULL)
