@@ -14,7 +14,8 @@
 #include <glm/gtc/matrix_transform.hpp> 
 #include <glm/gtc/type_ptr.hpp>
 
-
+#include <vector>
+#include <stack>
 
 #include "Shader.h"
 #include "Cube.h"
@@ -29,6 +30,14 @@
 #define TIME_PER_FRAME_MS  (1.0f/FRAMERATE * 1e3)
 #define INDICE_TO_PTR(x) ((void*)(x))
 
+struct GeometryObject
+{
+    GLuint vao;
+    int nbVertices;
+    glm::mat4 propagatedMatrix = glm::mat4(1.0f);
+    glm::mat4 localMatrix      = glm::mat4(1.0f);
+    std::vector<GeometryObject*> children;
+};
 
 GLuint generateVAO(const Geometry& geometry){
     //We generate our buffer
@@ -77,52 +86,33 @@ GLuint generateVAO(const Geometry& geometry){
     return VAO;
 }
 
-void draw(Shader* shader, Geometry& object, float& angleSquare, GLuint& VAO){
+void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object){
 
     // glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
 
     
-    glm::mat4 cameraMatrix(1.0f); //Camera matrix. If you want a 3D projection matrix, look at
-    // ,→ glm::lookAt : glm::mat4 mat = glm::lookAt(EyePosition, Center, UpVector) where each
-    // ,→ parameters is typed glm::vec3 : glm::vec3 vec(x, y, z); (you can do directly in the
-    // ,→ parameters : glm::vec3(x, y, z) to create glm::vec3 on the fly)
-
-    glm::mat4 matrix(1.0f); //Defines an identity matrix
-    // 1 0 0 0
-    // 0 1 0 0
-    // 0 0 1 0
-    // 0 0 0 1
-
-    //The most left transformation presented in equation (1) has to be done first
-    // matrix = glm::translate(matrix, glm::vec3(transX, transY, transZ)); //We translate
-    //  //We rotate via an
-    // ,→ axis and an angle around this axis
-
-    // matrix = glm::scale(matrix, glm::vec3(0.5f, 0.5f, 1.0f)); //And then we scale
-    // matrix = glm::translate(matrix, glm::vec3(0.5f, 0, 0)); //We translate
-    matrix = glm::rotate(matrix, glm::radians(angleSquare), glm::vec3(0, 1, 0));
-    matrix = glm::rotate(matrix, glm::radians(angleSquare), glm::vec3(1, 0, 0));
-
-    angleSquare >= 360 ? angleSquare=0 : angleSquare++; 
-
-    glm::mat4 mvp = cameraMatrix * matrix; //Finally we multiply all the matrices. In C++ you
-    // ,→ can do this because glm::mat4 has redefined the operator* to work with glm::mat4
-    // ,→ objects (and even with a glm::mat4 and a glm::vec4).
+    
 
     glUseProgram(shader->getProgramID());
-    glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+    glBindVertexArray(object.vao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
             
             GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); //Get the "uScale" location (ID)
+            glm::mat4 mvp = mvpStack.top() * object.propagatedMatrix * object.localMatrix;
             glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); //Set "uScale" at 0.5f. Remark : we use glUniform1f for sending a
             // ,→ (1) float (f). For other kinds of uniform (integers, vectors, etc.) see the
             // ,→ documentation
 
-            glDrawArrays(GL_TRIANGLES, 0, object.getNbVertices()); //Draw the triangle (three points which
+            glDrawArrays(GL_TRIANGLES, 0, object.nbVertices); //Draw the triangle (three points which
             // ,→ starts at offset = 0 in the VBO). GL_TRIANGLES tells that we are reading
             // ,→ three points per three points to form a triangle. Other kind of "
             // ,→ reading" exist, see glDrawArrays for more details.
             // glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
             
+            mvpStack.push(mvpStack.top() * object.propagatedMatrix);
+            for(GeometryObject* child : object.children)
+                draw(shader, mvpStack, *child);
+            mvpStack.pop(); 
+
             
     glBindVertexArray(0);
     glUseProgram(0); //Close the program. This is heavy for the GPU. In reality we do this
@@ -174,11 +164,24 @@ int main(int argc, char *argv[])
 
 
     //From here you can load your OpenGL objects, like VBO, Shaders, etc.
-    //Shaders
+
     Cube cube;
+    Sphere sphere(10,10);
 
-    GLuint cubeVAO = generateVAO(cube);
 
+    GeometryObject head;
+    head.nbVertices = sphere.getNbVertices();
+    head.vao = generateVAO(sphere);
+    head.propagatedMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.60f, 0.0f));
+
+    GeometryObject body;
+    body.nbVertices = cube.getNbVertices();
+    body.vao = generateVAO(cube);
+    body.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.30f, 1.0f, 0.30f));
+    body.children.push_back(&head);
+
+
+    //Shaders
     FILE* vertFile = fopen("Shaders/color.vert", "r");
     FILE* fragFile = fopen("Shaders/color.frag", "r");
  
@@ -195,14 +198,18 @@ int main(int argc, char *argv[])
 
     bool isOpened = true;
     //Main application loop
-
+    bool xRay = false;
     // uncomment this call to draw in wireframe polygons.
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glm::mat4 cameraMatrix(1.0f);
+    
     while(isOpened)
     {
         //Time in ms telling us when this frame started. Useful for keeping a fix framerate
         uint32_t timeBegin = SDL_GetTicks();
+
+        glm::mat4 projectionMatrix(1.0f);
+        
 
         //Fetch the SDL events
         SDL_Event event;
@@ -220,6 +227,28 @@ int main(int argc, char *argv[])
                             break;
                     }
                     break;
+
+                case SDL_KEYDOWN:
+                    /* Check the SDLKey values and move change the coords */
+                    switch (event.key.keysym.sym) {
+                        case SDLK_x:
+                            xRay ? glPolygonMode(GL_FRONT_AND_BACK, GL_FILL) : glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                            xRay = !xRay;
+                            break;
+                        case SDLK_LEFT:
+                            cameraMatrix = glm::translate(cameraMatrix, glm::vec3(-0.1f, 0.0f, 0.0f));
+                            break;
+                        case SDLK_RIGHT:
+                            cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.1f, 0.0f, 0.0f));
+                            break;
+                        case SDLK_UP:
+                            cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.f, 0.1f, 0.f));
+                            break;
+                        case SDLK_DOWN:
+                            cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.f, -0.1f, 0.f));
+                            break;
+                        }
+                    break;
                 //We can add more event, like listening for the keyboard or the mouse. See SDL_Event documentation for more details
             }
         }
@@ -227,8 +256,35 @@ int main(int argc, char *argv[])
         //Clear the screen : the depth buffer and the color buffer
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
+        // glm::mat4 cameraMatrix(1.0f); //Camera matrix. If you want a 3D projection matrix, look at
+        // // ,→ glm::lookAt : glm::mat4 mat = glm::lookAt(EyePosition, Center, UpVector) where each
+        // // ,→ parameters is typed glm::vec3 : glm::vec3 vec(x, y, z); (you can do directly in the
+        // // ,→ parameters : glm::vec3(x, y, z) to create glm::vec3 on the fly)
 
-        draw(shader, cube, angleSquare, cubeVAO);
+        // glm::mat4 matrix(1.0f); //Defines an identity matrix
+        // // 1 0 0 0
+        // // 0 1 0 0
+        // // 0 0 1 0
+        // // 0 0 0 1
+
+        //The most left transformation presented in equation (1) has to be done first
+        // matrix = glm::translate(matrix, glm::vec3(transX, transY, transZ)); //We translate
+        //  //We rotate via an
+        // ,→ axis and an angle around this axis
+
+        // matrix = glm::scale(matrix, glm::vec3(0.5f, 0.5f, 1.0f)); //And then we scale
+        // matrix = glm::translate(matrix, glm::vec3(0.5f, 0, 0)); //We translate
+        // matrix = glm::rotate(matrix, glm::radians(angleSquare), glm::vec3(0, 1, 0));
+        // matrix = glm::rotate(matrix, glm::radians(angleSquare), glm::vec3(1, 0, 0));
+
+        // angleSquare >= 360 ? angleSquare=0 : angleSquare++; 
+
+        
+
+        std::stack<glm::mat4> mvpStack;
+        mvpStack.push(projectionMatrix * glm::inverse(cameraMatrix));
+
+        draw(shader, mvpStack, body);
         
         //Display on screen (swap the buffer on screen and the buffer you are drawing on)
         SDL_GL_SwapWindow(window);
@@ -243,7 +299,7 @@ int main(int argc, char *argv[])
     
     delete shader; //Delete the shader (usually at the end of the program)
 
-    glDeleteBuffers(1, &cubeVAO); //Delete at the end the buffer
+    glDeleteBuffers(1, &head.vao); //Delete at the end the buffer
 
     //Free everything
     if(context != NULL)
