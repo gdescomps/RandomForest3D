@@ -40,45 +40,25 @@ struct GeometryObject
 };
 
 GLuint generateVAO(const Geometry& geometry){
-    //We generate our buffer
+    
     GLuint VBO, VAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
-    //We fill this buffer as a GL_ARRAY_BUFFER (buffer containing vertices (points) information). 
-    //Remind to close this buffer for not misusing it(glBindBuffer(GL_ARRAY_BUFFER, 0);)
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    //2 coordinates per UV, 3 per normal and 3 per position. We do not yet copy these data (hence the NULL)
-    glBufferData(GL_ARRAY_BUFFER, 2 * geometry.getNbVertices() * sizeof(float)*3, NULL, GL_DYNAMIC_DRAW); 
-
-    //Copy one by one the data (first positions, then normals and finally UV).
-    //We remind that we do not necessarily need all of these variables, and that other variables may be needed for your usecase
-    //parameters : Target, buffer offset, size to copy, CPU data.
     
-    //We consider that each data are typed « float* » with sizeof(float)*nbVertices*nbCoordinate bytes where nbCoordinate = 2 or 3 following the number of components per value for this variable
+    glBufferData(GL_ARRAY_BUFFER, 2 * geometry.getNbVertices() * sizeof(float)*3, NULL, GL_DYNAMIC_DRAW); 
+    
     glBufferSubData(GL_ARRAY_BUFFER, 0,                  geometry.getNbVertices()*sizeof(float)*3, geometry.getVertices());
     glBufferSubData(GL_ARRAY_BUFFER, geometry.getNbVertices()*sizeof(float)*3,  geometry.getNbVertices()*sizeof(float)*3, geometry.getNormals());
     //glBufferSubData(GL_ARRAY_BUFFER, 3*3sizeof(float)*nbVertices, 2*sizeof(float)*nbVertices, uvData);
     
-
-    //Work with vPosition
-    //GLint vPosition = glGetAttribLocation(shader->getProgramID(), "vPosition");
-    glVertexAttribPointer(0, 3, GL_FLOAT, 0, 3*sizeof(float), 0); //It is here that you
-    // ,→ select how the Shader reads the VBO. Indeed the 5th parameter is called
-    // ,→ "stride" : it is the distance in bytes between two values for the same
-    // ,→ kind or variable. If the values are side-by-side, stride == 0. Here we
-    // ,→ need to set to 3*sizeof(float) for the first version of the VBO seen in
-    // ,→ class.
+    glVertexAttribPointer(0, 3, GL_FLOAT, 0, 3*sizeof(float), 0); 
     glEnableVertexAttribArray(0); //Enable "vPosition"
-    //Work with vColor
-    //GLint vColor = glGetAttribLocation(shader->getProgramID(), "vNormal");
-    //Colors start at 9*sizeof(float) (3*nbVertices*sizeof(float)) for the second
-    // ,→ version of the VBO. For the first version of the VBO, both the stride
-    // ,→ and the offset should be 3*sizeof(float) here
+    
     glVertexAttribPointer(1, 3, GL_FLOAT, 0, 3*sizeof(float), INDICE_TO_PTR(geometry.getNbVertices()*3*sizeof(float))); //Convert an indice to void* : (void*)(x)
     glEnableVertexAttribArray(1); //Enable"vColor"
-
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the buffer
 
@@ -88,19 +68,11 @@ GLuint generateVAO(const Geometry& geometry){
 
 void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object){
 
-    // glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
-
-    
-    
-
     glUseProgram(shader->getProgramID());
-    glBindVertexArray(object.vao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-            
-            GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); //Get the "uScale" location (ID)
+    glBindVertexArray(object.vao);
+            GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); 
             glm::mat4 mvp = mvpStack.top() * object.propagatedMatrix * object.localMatrix;
-            glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); //Set "uScale" at 0.5f. Remark : we use glUniform1f for sending a
-            // ,→ (1) float (f). For other kinds of uniform (integers, vectors, etc.) see the
-            // ,→ documentation
+            glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); 
 
             glDrawArrays(GL_TRIANGLES, 0, object.nbVertices); //Draw the triangle (three points which
             // ,→ starts at offset = 0 in the VBO). GL_TRIANGLES tells that we are reading
@@ -113,7 +85,6 @@ void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object
                 draw(shader, mvpStack, *child);
             mvpStack.pop(); 
 
-            
     glBindVertexArray(0);
     glUseProgram(0); //Close the program. This is heavy for the GPU. In reality we do this
     // ,→ only if we have to CHANGE the shader (hence we cache the current in-use shader)
@@ -166,13 +137,14 @@ int main(int argc, char *argv[])
     //From here you can load your OpenGL objects, like VBO, Shaders, etc.
 
     Cube cube;
-    Sphere sphere(10,10);
+    Sphere sphere(32,32);
 
 
     GeometryObject head;
     head.nbVertices = sphere.getNbVertices();
     head.vao = generateVAO(sphere);
-    head.propagatedMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.60f, 0.0f));
+    head.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.40f, 0.50f, 0.40f));
+    head.propagatedMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.8f, 0.0f));
 
     GeometryObject body;
     body.nbVertices = cube.getNbVertices();
@@ -194,22 +166,20 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
     }
       
-    float angleSquare = 0;
+    float moveAngle = 5;
 
     bool isOpened = true;
-    //Main application loop
     bool xRay = false;
-    // uncomment this call to draw in wireframe polygons.
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
     glm::mat4 cameraMatrix(1.0f);
-    
+    cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.0f, 0.0f, 3.0f));
+    glm::mat4 projectionMatrix = glm::perspective(glm::radians(45.0f), (float)WIDTH/(float)HEIGHT, 0.1f, 100.0f);
+
+    //Main application loop
     while(isOpened)
     {
         //Time in ms telling us when this frame started. Useful for keeping a fix framerate
         uint32_t timeBegin = SDL_GetTicks();
-
-        glm::mat4 projectionMatrix(1.0f);
-        
 
         //Fetch the SDL events
         SDL_Event event;
@@ -229,7 +199,6 @@ int main(int argc, char *argv[])
                     break;
 
                 case SDL_KEYDOWN:
-                    /* Check the SDLKey values and move change the coords */
                     switch (event.key.keysym.sym) {
                         case SDLK_x:
                             xRay ? glPolygonMode(GL_FRONT_AND_BACK, GL_FILL) : glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -247,39 +216,28 @@ int main(int argc, char *argv[])
                         case SDLK_DOWN:
                             cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.f, -0.1f, 0.f));
                             break;
+                        case SDLK_d:
+                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(0, 1, 0));
+                            break;
+                        case SDLK_q:
+                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(0, 1, 0));
+                            break;
+                        case SDLK_z:
+                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(1, 0, 0));
+                            break;
+                        case SDLK_s:
+                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(1, 0, 0));
+                            break;
+                        case SDLK_ESCAPE:
+                            return 0;
+                            break;
                         }
                     break;
-                //We can add more event, like listening for the keyboard or the mouse. See SDL_Event documentation for more details
             }
         }
 
         //Clear the screen : the depth buffer and the color buffer
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
-        // glm::mat4 cameraMatrix(1.0f); //Camera matrix. If you want a 3D projection matrix, look at
-        // // ,→ glm::lookAt : glm::mat4 mat = glm::lookAt(EyePosition, Center, UpVector) where each
-        // // ,→ parameters is typed glm::vec3 : glm::vec3 vec(x, y, z); (you can do directly in the
-        // // ,→ parameters : glm::vec3(x, y, z) to create glm::vec3 on the fly)
-
-        // glm::mat4 matrix(1.0f); //Defines an identity matrix
-        // // 1 0 0 0
-        // // 0 1 0 0
-        // // 0 0 1 0
-        // // 0 0 0 1
-
-        //The most left transformation presented in equation (1) has to be done first
-        // matrix = glm::translate(matrix, glm::vec3(transX, transY, transZ)); //We translate
-        //  //We rotate via an
-        // ,→ axis and an angle around this axis
-
-        // matrix = glm::scale(matrix, glm::vec3(0.5f, 0.5f, 1.0f)); //And then we scale
-        // matrix = glm::translate(matrix, glm::vec3(0.5f, 0, 0)); //We translate
-        // matrix = glm::rotate(matrix, glm::radians(angleSquare), glm::vec3(0, 1, 0));
-        // matrix = glm::rotate(matrix, glm::radians(angleSquare), glm::vec3(1, 0, 0));
-
-        // angleSquare >= 360 ? angleSquare=0 : angleSquare++; 
-
-        
 
         std::stack<glm::mat4> mvpStack;
         mvpStack.push(projectionMatrix * glm::inverse(cameraMatrix));
