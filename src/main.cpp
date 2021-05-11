@@ -18,9 +18,10 @@
 #include <stack>
 
 #include "Shader.h"
+
 #include "Cube.h"
 #include "Sphere.h"
-
+#include "Cylinder.h"
 
 #include "logger.h"
 
@@ -30,14 +31,6 @@
 #define TIME_PER_FRAME_MS  (1.0f/FRAMERATE * 1e3)
 #define INDICE_TO_PTR(x) ((void*)(x))
 
-struct GeometryObject
-{
-    GLuint vao;
-    int nbVertices;
-    glm::mat4 propagatedMatrix = glm::mat4(1.0f);
-    glm::mat4 localMatrix      = glm::mat4(1.0f);
-    std::vector<GeometryObject*> children;
-};
 
 GLuint generateVAO(const Geometry& geometry){
     
@@ -65,6 +58,15 @@ GLuint generateVAO(const Geometry& geometry){
     glBindVertexArray(0);
     return VAO;
 }
+
+struct GeometryObject
+{
+    GLuint vao;
+    int nbVertices;
+    glm::mat4 propagatedMatrix = glm::mat4(1.0f);
+    glm::mat4 localMatrix      = glm::mat4(1.0f);
+    std::vector<GeometryObject*> children;
+};
 
 void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object){
 
@@ -138,20 +140,56 @@ int main(int argc, char *argv[])
 
     Cube cube;
     Sphere sphere(32,32);
+    Cylinder cylinder(32);
+
+    // GeometryObject head;
+    // head.nbVertices = sphere.getNbVertices();
+    // head.vao = generateVAO(sphere);
+    // head.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.40f, 0.50f, 0.40f));
+    // head.propagatedMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.8f, 0.0f));
+
+    // GeometryObject body;
+    // body.nbVertices = cube.getNbVertices();
+    // body.vao = generateVAO(cube);
+    // body.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.30f, 1.0f, 0.30f));
+    // body.children.push_back(&head);
 
 
-    GeometryObject head;
-    head.nbVertices = sphere.getNbVertices();
-    head.vao = generateVAO(sphere);
-    head.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.40f, 0.50f, 0.40f));
-    head.propagatedMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.8f, 0.0f));
+    GeometryObject feuille1;
+    feuille1.nbVertices = sphere.getNbVertices();
+    feuille1.vao = generateVAO(sphere);
+    feuille1.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.20f, 0.20f, 0.20f));
+    feuille1.propagatedMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.25f, 0.0f));
 
-    GeometryObject body;
-    body.nbVertices = cube.getNbVertices();
-    body.vao = generateVAO(cube);
-    body.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.30f, 1.0f, 0.30f));
-    body.children.push_back(&head);
+    GeometryObject brindille1;
+    brindille1.nbVertices = cylinder.getNbVertices();
+    brindille1.vao = generateVAO(cylinder);
+    brindille1.localMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
+    brindille1.localMatrix = glm::scale(brindille1.localMatrix, glm::vec3(0.2f, 0.2f, 1.0f));
+    brindille1.localMatrix = glm::scale(brindille1.localMatrix, glm::vec3(0.2f, 0.2f, 0.4f));
+    brindille1.propagatedMatrix = glm::rotate(brindille1.propagatedMatrix, glm::radians(45.0f), glm::vec3(1, 0, 0));
+    brindille1.propagatedMatrix = glm::rotate(brindille1.propagatedMatrix, glm::radians(45.0f), glm::vec3(0, 1, 0));
+    brindille1.propagatedMatrix = glm::translate(brindille1.propagatedMatrix, glm::vec3(0.0f, 0.2f, 0.0f));
+    brindille1.children.push_back(&feuille1);
 
+    GeometryObject branche1;
+    branche1.nbVertices = cylinder.getNbVertices();
+    branche1.vao = generateVAO(cylinder);
+    branche1.localMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
+    branche1.localMatrix = glm::scale(branche1.localMatrix, glm::vec3(0.2f, 0.2f, 1.0f));
+    branche1.localMatrix = glm::scale(branche1.localMatrix, glm::vec3(0.5f, 0.5f, 0.7f));
+    branche1.propagatedMatrix = glm::rotate(branche1.propagatedMatrix, glm::radians(45.0f), glm::vec3(1, 0, 0));
+    branche1.propagatedMatrix = glm::rotate(branche1.propagatedMatrix, glm::radians(45.0f), glm::vec3(0, 1, 0));
+    branche1.propagatedMatrix = glm::translate(branche1.propagatedMatrix, glm::vec3(0.0f, 0.4f, 0.0f));
+    branche1.children.push_back(&brindille1);
+
+
+    GeometryObject tronc;
+    tronc.nbVertices = cylinder.getNbVertices();
+    tronc.vao = generateVAO(cylinder);
+    tronc.localMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
+    tronc.localMatrix = glm::scale(tronc.localMatrix, glm::vec3(0.2f, 0.2f, 1.0f));
+    tronc.children.push_back(&branche1);
 
     //Shaders
     FILE* vertFile = fopen("Shaders/color.vert", "r");
@@ -217,16 +255,16 @@ int main(int argc, char *argv[])
                             cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.f, -0.1f, 0.f));
                             break;
                         case SDLK_d:
-                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(0, 1, 0));
+                            tronc.propagatedMatrix = glm::rotate(tronc.propagatedMatrix, glm::radians(moveAngle), glm::vec3(0, 1, 0));
                             break;
                         case SDLK_q:
-                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(0, 1, 0));
+                            tronc.propagatedMatrix = glm::rotate(tronc.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(0, 1, 0));
                             break;
                         case SDLK_z:
-                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(1, 0, 0));
+                            tronc.propagatedMatrix = glm::rotate(tronc.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(1, 0, 0));
                             break;
                         case SDLK_s:
-                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(1, 0, 0));
+                            tronc.propagatedMatrix = glm::rotate(tronc.propagatedMatrix, glm::radians(moveAngle), glm::vec3(1, 0, 0));
                             break;
                         case SDLK_ESCAPE:
                             return 0;
@@ -242,7 +280,7 @@ int main(int argc, char *argv[])
         std::stack<glm::mat4> mvpStack;
         mvpStack.push(projectionMatrix * glm::inverse(cameraMatrix));
 
-        draw(shader, mvpStack, body);
+        draw(shader, mvpStack, tronc);
         
         //Display on screen (swap the buffer on screen and the buffer you are drawing on)
         SDL_GL_SwapWindow(window);
@@ -257,7 +295,7 @@ int main(int argc, char *argv[])
     
     delete shader; //Delete the shader (usually at the end of the program)
 
-    glDeleteBuffers(1, &head.vao); //Delete at the end the buffer
+    // glDeleteBuffers(1, &head.vao); //Delete at the end the buffer
 
     //Free everything
     if(context != NULL)
