@@ -17,7 +17,7 @@ class Shader
         Shader();
 
         /* \brief Destructor. Destroy the shader component created */
-        ~Shader();
+        virtual ~Shader();
 
         /** \brief get the program ID stored in the graphic memory of this shader.
          * \return the program ID */

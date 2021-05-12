@@ -23,6 +23,10 @@
 #include "Sphere.h"
 #include "Cylinder.h"
 
+
+#include "GeometryObject.h"
+
+
 #include "logger.h"
 
 #define WIDTH     800
@@ -31,60 +35,24 @@
 #define TIME_PER_FRAME_MS  (1.0f/FRAMERATE * 1e3)
 #define INDICE_TO_PTR(x) ((void*)(x))
 
-
-GLuint generateVAO(const Geometry& geometry){
-    
-    GLuint VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    
-    glBufferData(GL_ARRAY_BUFFER, 2 * geometry.getNbVertices() * sizeof(float)*3, NULL, GL_DYNAMIC_DRAW); 
-    
-    glBufferSubData(GL_ARRAY_BUFFER, 0,                  geometry.getNbVertices()*sizeof(float)*3, geometry.getVertices());
-    glBufferSubData(GL_ARRAY_BUFFER, geometry.getNbVertices()*sizeof(float)*3,  geometry.getNbVertices()*sizeof(float)*3, geometry.getNormals());
-    //glBufferSubData(GL_ARRAY_BUFFER, 3*3sizeof(float)*nbVertices, 2*sizeof(float)*nbVertices, uvData);
-    
-    glVertexAttribPointer(0, 3, GL_FLOAT, 0, 3*sizeof(float), 0); 
-    glEnableVertexAttribArray(0); //Enable "vPosition"
-    
-    glVertexAttribPointer(1, 3, GL_FLOAT, 0, 3*sizeof(float), INDICE_TO_PTR(geometry.getNbVertices()*3*sizeof(float))); //Convert an indice to void* : (void*)(x)
-    glEnableVertexAttribArray(1); //Enable"vColor"
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the buffer
-
-    glBindVertexArray(0);
-    return VAO;
-}
-
-struct GeometryObject
-{
-    GLuint vao;
-    int nbVertices;
-    glm::mat4 propagatedMatrix = glm::mat4(1.0f);
-    glm::mat4 localMatrix      = glm::mat4(1.0f);
-    std::vector<GeometryObject> children;
-};
-
 void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object){
 
     glUseProgram(shader->getProgramID());
-    glBindVertexArray(object.vao);
+    glBindVertexArray(object.getVAO());
             GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); 
-            glm::mat4 mvp = mvpStack.top() * object.propagatedMatrix * object.localMatrix;
+            glm::mat4 mvp = mvpStack.top() * object.getPropagatedMatrix() * object.getLocalMatrix();
             glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); 
 
-            glDrawArrays(GL_TRIANGLES, 0, object.nbVertices); //Draw the triangle (three points which
+            glDrawArrays(GL_TRIANGLES, 0, object.getNbVertices()); //Draw the triangle (three points which
             // ,→ starts at offset = 0 in the VBO). GL_TRIANGLES tells that we are reading
             // ,→ three points per three points to form a triangle. Other kind of "
             // ,→ reading" exist, see glDrawArrays for more details.
             // glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
             
-            mvpStack.push(mvpStack.top() * object.propagatedMatrix);
-            for(GeometryObject child : object.children)
+            mvpStack.push(mvpStack.top() * object.getPropagatedMatrix());
+            for(GeometryObject child : *object.getChildren())
                 draw(shader, mvpStack, child);
+
             mvpStack.pop(); 
 
     glBindVertexArray(0);
@@ -142,53 +110,50 @@ int main(int argc, char *argv[])
     Sphere sphere(32,32);
     Cylinder cylinder(32);
 
+    // GeometryObject head(sphere);
+    // head.transform(local, scale, glm::vec3(0.40f, 0.50f, 0.40f));
+    // head.transform(relative, rotate, glm::vec3(0.0f, 0.0f, 1.0f), 45.0f);
+    // head.transform(relative, translate, glm::vec3(0.0f, 0.8f, 0.0f));
 
-    
 
-    GeometryObject tronc;
-    tronc.nbVertices = cylinder.getNbVertices();
-    tronc.vao = generateVAO(cylinder);
-    tronc.localMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
-    tronc.localMatrix = glm::scale(tronc.localMatrix, glm::vec3(0.2f, 0.2f, 1.0f));
+    GeometryObject tronc(cylinder);
+    tronc.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
+    tronc.transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
     
     for (int nbBranches = 0; nbBranches < 4; ++nbBranches)
     {
 
-        GeometryObject branche1;
-        branche1.nbVertices = cylinder.getNbVertices();
-        branche1.vao = generateVAO(cylinder);
-        branche1.localMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
-        branche1.localMatrix = glm::scale(branche1.localMatrix, glm::vec3(0.2f, 0.2f, 1.0f));
-        branche1.localMatrix = glm::scale(branche1.localMatrix, glm::vec3(0.5f, 0.5f, 0.7f));
-        branche1.propagatedMatrix = glm::rotate(branche1.propagatedMatrix, glm::radians(90.0f*nbBranches), glm::vec3(0, 1, 0));
-        branche1.propagatedMatrix = glm::rotate(branche1.propagatedMatrix, glm::radians(45.0f), glm::vec3(1, 0, 0));
-        branche1.propagatedMatrix = glm::translate(branche1.propagatedMatrix, glm::vec3(0.0f, 0.4f, 0.0f));
+        GeometryObject branche1(cylinder);
+        branche1.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
+        branche1.transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
+        branche1.transform(local, scale, glm::vec3(0.5f, 0.5f, 0.7f));
+        branche1.transform(relative, rotate, glm::vec3(0, 1, 0), 90.0f*nbBranches);
+        branche1.transform(relative, rotate, glm::vec3(1, 0, 0), 45.0f);
+        branche1.transform(relative, translate, glm::vec3(0.0f, 0.4f, 0.0f));
         
 
         for (int nbBrindilles = 0; nbBrindilles < 4; ++nbBrindilles)
         {
-            GeometryObject feuille1;
-            feuille1.nbVertices = sphere.getNbVertices();
-            feuille1.vao = generateVAO(sphere);
-            feuille1.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.20f, 0.20f, 0.20f));
-            feuille1.propagatedMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.25f, 0.0f));
+            GeometryObject feuille1(sphere);
+            feuille1.transform(local, scale, glm::vec3(0.20f, 0.20f, 0.20f));
+            feuille1.transform(relative, translate, glm::vec3(0.0f, 0.25f, 0.0f));
 
-            GeometryObject brindille1;
-            brindille1.nbVertices = cylinder.getNbVertices();
-            brindille1.vao = generateVAO(cylinder);
-            brindille1.localMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
-            brindille1.localMatrix = glm::scale(brindille1.localMatrix, glm::vec3(0.2f, 0.2f, 1.0f));
-            brindille1.localMatrix = glm::scale(brindille1.localMatrix, glm::vec3(0.2f, 0.2f, 0.4f));
-            brindille1.propagatedMatrix = glm::rotate(brindille1.propagatedMatrix, glm::radians(90.0f*nbBrindilles), glm::vec3(0, 1, 0));
-            brindille1.propagatedMatrix = glm::rotate(brindille1.propagatedMatrix, glm::radians(45.0f), glm::vec3(1, 0, 0));
-            brindille1.propagatedMatrix = glm::translate(brindille1.propagatedMatrix, glm::vec3(0.0f, 0.2f, 0.0f));
-            brindille1.children.push_back(feuille1);
+            GeometryObject brindille1(cylinder);
+            brindille1.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
+            brindille1.transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
+            brindille1.transform(local, scale, glm::vec3(0.2f, 0.2f, 0.4f));
+            brindille1.transform(relative, rotate, glm::vec3(0, 1, 0), 90.0f*nbBrindilles );
+            brindille1.transform(relative, rotate, glm::vec3(1, 0, 0), 45.0f );
+            brindille1.transform(relative, translate, glm::vec3(0.0f, 0.2f, 0.0f));
 
-            branche1.children.push_back(brindille1);
+            brindille1.getChildren()->push_back(feuille1);
+
+            branche1.getChildren()->push_back(brindille1);
         }
 
-        tronc.children.push_back(branche1);
+        tronc.getChildren()->push_back(branche1);
     }
+
 
     //Shaders
     FILE* vertFile = fopen("Shaders/color.vert", "r");
@@ -203,8 +168,6 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
     }
       
-    float moveAngle = 5;
-
     bool isOpened = true;
     bool xRay = false;
 
@@ -253,18 +216,20 @@ int main(int argc, char *argv[])
                         case SDLK_DOWN:
                             cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.f, -0.1f, 0.f));
                             break;
-                        case SDLK_d:
-                            tronc.propagatedMatrix = glm::rotate(tronc.propagatedMatrix, glm::radians(moveAngle), glm::vec3(0, 1, 0));
-                            break;
-                        case SDLK_q:
-                            tronc.propagatedMatrix = glm::rotate(tronc.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(0, 1, 0));
-                            break;
-                        case SDLK_z:
-                            tronc.propagatedMatrix = glm::rotate(tronc.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(1, 0, 0));
-                            break;
-                        case SDLK_s:
-                            tronc.propagatedMatrix = glm::rotate(tronc.propagatedMatrix, glm::radians(moveAngle), glm::vec3(1, 0, 0));
-                            break;
+
+                        // case SDLK_d:
+                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(0, 1, 0));
+                        //     break;
+                        // case SDLK_q:
+                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(0, 1, 0));
+                        //     break;
+                        // case SDLK_z:
+                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(1, 0, 0));
+                        //     break;
+                        // case SDLK_s:
+                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(1, 0, 0));
+                        //     break;
+
                         case SDLK_ESCAPE:
                             return 0;
                             break;
