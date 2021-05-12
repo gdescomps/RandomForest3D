@@ -124,9 +124,10 @@ int main(int argc, char *argv[])
     bool isOpened = true;
     bool xRay = false;
 
-    glm::mat4 cameraMatrix(1.0f);
-    cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.0f, 0.0f, 3.0f));
-    glm::mat4 projectionMatrix = glm::perspective(glm::radians(45.0f), (float)WIDTH/(float)HEIGHT, 0.1f, 100.0f);
+    
+    glm::mat4 view = glm::mat4(1.0f);
+
+    int angle = 0;
 
     //Main application loop
     while(isOpened)
@@ -158,16 +159,16 @@ int main(int argc, char *argv[])
                             xRay = !xRay;
                             break;
                         case SDLK_LEFT:
-                            cameraMatrix = glm::translate(cameraMatrix, glm::vec3(-0.1f, 0.0f, 0.0f));
+                            view = glm::translate(view, glm::vec3(-0.1f, 0.0f, 0.0f));
                             break;
                         case SDLK_RIGHT:
-                            cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.1f, 0.0f, 0.0f));
+                            view = glm::translate(view, glm::vec3(0.1f, 0.0f, 0.0f));
                             break;
                         case SDLK_UP:
-                            cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.f, 0.1f, 0.f));
+                            view = glm::translate(view, glm::vec3(0.f, 0.0f, -0.1f));
                             break;
                         case SDLK_DOWN:
-                            cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.f, -0.1f, 0.f));
+                            view = glm::translate(view, glm::vec3(0.f, 0.0f, 0.1f));
                             break;
 
                         // case SDLK_d:
@@ -194,12 +195,29 @@ int main(int argc, char *argv[])
         //Clear the screen : the depth buffer and the color buffer
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-        std::stack<glm::mat4> mvpStack;
-        mvpStack.push(projectionMatrix * glm::inverse(cameraMatrix));
 
+        // glm::mat4 view;
+        // view = glm::lookAt(glm::vec3(0.0f, 0.0f, -3.0f), 
+        //        glm::vec3(0.0f, 0.0f, 0.0f), 
+        //        glm::vec3(0.0f, 1.0f, 0.0f));
+
+
+        const float radius = 3.0f;
+        const float speed = 0.01f;
+        float camX = sin(angle*speed) * radius;
+        float camZ = cos(angle*speed) * radius;
+        
+        view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+        glm::mat4 projectionMatrix = glm::perspective(glm::radians(45.0f), (float)WIDTH/(float)HEIGHT, 0.1f, 100.0f);
+
+        std::stack<glm::mat4> mvpStack;
+        mvpStack.push(projectionMatrix * view);
+        
+        angle++;
 
         draw(shader, mvpStack, *tree1);
         
+
         //Display on screen (swap the buffer on screen and the buffer you are drawing on)
         SDL_GL_SwapWindow(window);
 
