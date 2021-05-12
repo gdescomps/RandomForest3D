@@ -34,6 +34,7 @@
 #define TIME_PER_FRAME_MS  (1.0f/FRAMERATE * 1e3)
 #define INDICE_TO_PTR(x) ((void*)(x))
 
+
 void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object){
 
     glUseProgram(shader->getProgramID());
@@ -89,6 +90,8 @@ int main(int argc, char *argv[])
     //Initialize the OpenGL Context (where OpenGL resources (Graphics card resources) lives)
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
+    SDL_SetRelativeMouseMode(SDL_TRUE);
+
     //Tells GLEW to initialize the OpenGL function with this version
     glewExperimental = GL_TRUE;
     glewInit();
@@ -124,10 +127,18 @@ int main(int argc, char *argv[])
     bool isOpened = true;
     bool xRay = false;
 
+    const float cameraSpeed = 0.1f;
+    const float horizontalMouseSpeed=0.1f;
+    const float verticalMouseSpeed=0.1f;
     
+    float yaw=270;
+    float pitch=0;
+
     glm::mat4 view = glm::mat4(1.0f);
 
-    int angle = 0;
+    glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f);
+    glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
 
     //Main application loop
     while(isOpened)
@@ -152,37 +163,29 @@ int main(int argc, char *argv[])
                     }
                     break;
 
+                case SDL_MOUSEMOTION:
+                    yaw+=event.motion.xrel*horizontalMouseSpeed;
+                    pitch-=event.motion.yrel*verticalMouseSpeed;
+                    break;
+
                 case SDL_KEYDOWN:
                     switch (event.key.keysym.sym) {
                         case SDLK_x:
                             xRay ? glPolygonMode(GL_FRONT_AND_BACK, GL_FILL) : glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
                             xRay = !xRay;
                             break;
-                        case SDLK_LEFT:
-                            view = glm::translate(view, glm::vec3(-0.1f, 0.0f, 0.0f));
+                        case SDLK_q:
+                            cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
                             break;
-                        case SDLK_RIGHT:
-                            view = glm::translate(view, glm::vec3(0.1f, 0.0f, 0.0f));
+                        case SDLK_d:
+                            cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
                             break;
-                        case SDLK_UP:
-                            view = glm::translate(view, glm::vec3(0.f, 0.0f, -0.1f));
+                        case SDLK_z:
+                            cameraPos += cameraSpeed * cameraFront;
                             break;
-                        case SDLK_DOWN:
-                            view = glm::translate(view, glm::vec3(0.f, 0.0f, 0.1f));
+                        case SDLK_s:
+                            cameraPos -= cameraSpeed * cameraFront;
                             break;
-
-                        // case SDLK_d:
-                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(0, 1, 0));
-                        //     break;
-                        // case SDLK_q:
-                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(0, 1, 0));
-                        //     break;
-                        // case SDLK_z:
-                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(1, 0, 0));
-                        //     break;
-                        // case SDLK_s:
-                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(1, 0, 0));
-                        //     break;
 
                         case SDLK_ESCAPE:
                             return 0;
@@ -195,25 +198,25 @@ int main(int argc, char *argv[])
         //Clear the screen : the depth buffer and the color buffer
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-
-        // glm::mat4 view;
-        // view = glm::lookAt(glm::vec3(0.0f, 0.0f, -3.0f), 
-        //        glm::vec3(0.0f, 0.0f, 0.0f), 
-        //        glm::vec3(0.0f, 1.0f, 0.0f));
-
-
-        const float radius = 3.0f;
-        const float speed = 0.01f;
-        float camX = sin(angle*speed) * radius;
-        float camZ = cos(angle*speed) * radius;
+        if(pitch > 89.0f)
+          pitch =  89.0f;
+        if(pitch < -89.0f)
+          pitch = -89.0f;
         
-        view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+        glm::vec3 direction;
+        direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        direction.y = sin(glm::radians(pitch));
+        direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        cameraFront = glm::normalize(direction);
+
+        cameraPos.y=0;
+
+        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glm::mat4 projectionMatrix = glm::perspective(glm::radians(45.0f), (float)WIDTH/(float)HEIGHT, 0.1f, 100.0f);
 
         std::stack<glm::mat4> mvpStack;
         mvpStack.push(projectionMatrix * view);
         
-        angle++;
 
         draw(shader, mvpStack, *tree1);
         
