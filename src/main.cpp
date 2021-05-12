@@ -21,6 +21,8 @@
 #include "Cube.h"
 #include "Sphere.h"
 
+#include "GeometryObject.h"
+
 
 #include "logger.h"
 
@@ -30,58 +32,22 @@
 #define TIME_PER_FRAME_MS  (1.0f/FRAMERATE * 1e3)
 #define INDICE_TO_PTR(x) ((void*)(x))
 
-struct GeometryObject
-{
-    GLuint vao;
-    int nbVertices;
-    glm::mat4 propagatedMatrix = glm::mat4(1.0f);
-    glm::mat4 localMatrix      = glm::mat4(1.0f);
-    std::vector<GeometryObject*> children;
-};
-
-GLuint generateVAO(const Geometry& geometry){
-    
-    GLuint VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    
-    glBufferData(GL_ARRAY_BUFFER, 2 * geometry.getNbVertices() * sizeof(float)*3, NULL, GL_DYNAMIC_DRAW); 
-    
-    glBufferSubData(GL_ARRAY_BUFFER, 0,                  geometry.getNbVertices()*sizeof(float)*3, geometry.getVertices());
-    glBufferSubData(GL_ARRAY_BUFFER, geometry.getNbVertices()*sizeof(float)*3,  geometry.getNbVertices()*sizeof(float)*3, geometry.getNormals());
-    //glBufferSubData(GL_ARRAY_BUFFER, 3*3sizeof(float)*nbVertices, 2*sizeof(float)*nbVertices, uvData);
-    
-    glVertexAttribPointer(0, 3, GL_FLOAT, 0, 3*sizeof(float), 0); 
-    glEnableVertexAttribArray(0); //Enable "vPosition"
-    
-    glVertexAttribPointer(1, 3, GL_FLOAT, 0, 3*sizeof(float), INDICE_TO_PTR(geometry.getNbVertices()*3*sizeof(float))); //Convert an indice to void* : (void*)(x)
-    glEnableVertexAttribArray(1); //Enable"vColor"
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the buffer
-
-    glBindVertexArray(0);
-    return VAO;
-}
-
 void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object){
 
     glUseProgram(shader->getProgramID());
-    glBindVertexArray(object.vao);
+    glBindVertexArray(object.getVAO());
             GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); 
-            glm::mat4 mvp = mvpStack.top() * object.propagatedMatrix * object.localMatrix;
+            glm::mat4 mvp = mvpStack.top() * object.getPropagatedMatrix() * object.getLocalMatrix();
             glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); 
 
-            glDrawArrays(GL_TRIANGLES, 0, object.nbVertices); //Draw the triangle (three points which
+            glDrawArrays(GL_TRIANGLES, 0, object.getNbVertices()); //Draw the triangle (three points which
             // ,→ starts at offset = 0 in the VBO). GL_TRIANGLES tells that we are reading
             // ,→ three points per three points to form a triangle. Other kind of "
             // ,→ reading" exist, see glDrawArrays for more details.
             // glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
             
-            mvpStack.push(mvpStack.top() * object.propagatedMatrix);
-            for(GeometryObject* child : object.children)
+            mvpStack.push(mvpStack.top() * object.getPropagatedMatrix());
+            for(GeometryObject* child : *object.getChildren())
                 draw(shader, mvpStack, *child);
             mvpStack.pop(); 
 
@@ -139,19 +105,14 @@ int main(int argc, char *argv[])
     Cube cube;
     Sphere sphere(32,32);
 
+    GeometryObject head(sphere);
+    head.transform(local, scale, glm::vec3(0.40f, 0.50f, 0.40f));
+    head.transform(relative, rotate, glm::vec3(0.0f, 0.0f, 1.0f), 45.0f);
+    head.transform(relative, translate, glm::vec3(0.0f, 0.8f, 0.0f));
 
-    GeometryObject head;
-    head.nbVertices = sphere.getNbVertices();
-    head.vao = generateVAO(sphere);
-    head.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.40f, 0.50f, 0.40f));
-    head.propagatedMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.8f, 0.0f));
-
-    GeometryObject body;
-    body.nbVertices = cube.getNbVertices();
-    body.vao = generateVAO(cube);
-    body.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.30f, 1.0f, 0.30f));
-    body.children.push_back(&head);
-
+    GeometryObject body(cube);
+    body.transform(local, scale,  glm::vec3(0.30f, 1.0f, 0.30f));
+    body.getChildren()->push_back(&head);
 
     //Shaders
     FILE* vertFile = fopen("Shaders/color.vert", "r");
@@ -216,18 +177,18 @@ int main(int argc, char *argv[])
                         case SDLK_DOWN:
                             cameraMatrix = glm::translate(cameraMatrix, glm::vec3(0.f, -0.1f, 0.f));
                             break;
-                        case SDLK_d:
-                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(0, 1, 0));
-                            break;
-                        case SDLK_q:
-                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(0, 1, 0));
-                            break;
-                        case SDLK_z:
-                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(1, 0, 0));
-                            break;
-                        case SDLK_s:
-                            body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(1, 0, 0));
-                            break;
+                        // case SDLK_d:
+                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(0, 1, 0));
+                        //     break;
+                        // case SDLK_q:
+                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(0, 1, 0));
+                        //     break;
+                        // case SDLK_z:
+                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(-moveAngle), glm::vec3(1, 0, 0));
+                        //     break;
+                        // case SDLK_s:
+                        //     body.propagatedMatrix = glm::rotate(body.propagatedMatrix, glm::radians(moveAngle), glm::vec3(1, 0, 0));
+                        //     break;
                         case SDLK_ESCAPE:
                             return 0;
                             break;
@@ -257,7 +218,7 @@ int main(int argc, char *argv[])
     
     delete shader; //Delete the shader (usually at the end of the program)
 
-    glDeleteBuffers(1, &head.vao); //Delete at the end the buffer
+    // glDeleteBuffers(1, &head.vao); //Delete at the end the buffer
 
     //Free everything
     if(context != NULL)
