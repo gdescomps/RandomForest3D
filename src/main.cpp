@@ -65,7 +65,7 @@ struct GeometryObject
     int nbVertices;
     glm::mat4 propagatedMatrix = glm::mat4(1.0f);
     glm::mat4 localMatrix      = glm::mat4(1.0f);
-    std::vector<GeometryObject*> children;
+    std::vector<GeometryObject> children;
 };
 
 void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object){
@@ -83,8 +83,8 @@ void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object
             // glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
             
             mvpStack.push(mvpStack.top() * object.propagatedMatrix);
-            for(GeometryObject* child : object.children)
-                draw(shader, mvpStack, *child);
+            for(GeometryObject child : object.children)
+                draw(shader, mvpStack, child);
             mvpStack.pop(); 
 
     glBindVertexArray(0);
@@ -142,54 +142,53 @@ int main(int argc, char *argv[])
     Sphere sphere(32,32);
     Cylinder cylinder(32);
 
-    // GeometryObject head;
-    // head.nbVertices = sphere.getNbVertices();
-    // head.vao = generateVAO(sphere);
-    // head.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.40f, 0.50f, 0.40f));
-    // head.propagatedMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.8f, 0.0f));
 
-    // GeometryObject body;
-    // body.nbVertices = cube.getNbVertices();
-    // body.vao = generateVAO(cube);
-    // body.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.30f, 1.0f, 0.30f));
-    // body.children.push_back(&head);
-
-
-    GeometryObject feuille1;
-    feuille1.nbVertices = sphere.getNbVertices();
-    feuille1.vao = generateVAO(sphere);
-    feuille1.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.20f, 0.20f, 0.20f));
-    feuille1.propagatedMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.25f, 0.0f));
-
-    GeometryObject brindille1;
-    brindille1.nbVertices = cylinder.getNbVertices();
-    brindille1.vao = generateVAO(cylinder);
-    brindille1.localMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
-    brindille1.localMatrix = glm::scale(brindille1.localMatrix, glm::vec3(0.2f, 0.2f, 1.0f));
-    brindille1.localMatrix = glm::scale(brindille1.localMatrix, glm::vec3(0.2f, 0.2f, 0.4f));
-    brindille1.propagatedMatrix = glm::rotate(brindille1.propagatedMatrix, glm::radians(45.0f), glm::vec3(1, 0, 0));
-    brindille1.propagatedMatrix = glm::rotate(brindille1.propagatedMatrix, glm::radians(45.0f), glm::vec3(0, 1, 0));
-    brindille1.propagatedMatrix = glm::translate(brindille1.propagatedMatrix, glm::vec3(0.0f, 0.2f, 0.0f));
-    brindille1.children.push_back(&feuille1);
-
-    GeometryObject branche1;
-    branche1.nbVertices = cylinder.getNbVertices();
-    branche1.vao = generateVAO(cylinder);
-    branche1.localMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
-    branche1.localMatrix = glm::scale(branche1.localMatrix, glm::vec3(0.2f, 0.2f, 1.0f));
-    branche1.localMatrix = glm::scale(branche1.localMatrix, glm::vec3(0.5f, 0.5f, 0.7f));
-    branche1.propagatedMatrix = glm::rotate(branche1.propagatedMatrix, glm::radians(45.0f), glm::vec3(1, 0, 0));
-    branche1.propagatedMatrix = glm::rotate(branche1.propagatedMatrix, glm::radians(45.0f), glm::vec3(0, 1, 0));
-    branche1.propagatedMatrix = glm::translate(branche1.propagatedMatrix, glm::vec3(0.0f, 0.4f, 0.0f));
-    branche1.children.push_back(&brindille1);
-
+    
 
     GeometryObject tronc;
     tronc.nbVertices = cylinder.getNbVertices();
     tronc.vao = generateVAO(cylinder);
     tronc.localMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
     tronc.localMatrix = glm::scale(tronc.localMatrix, glm::vec3(0.2f, 0.2f, 1.0f));
-    tronc.children.push_back(&branche1);
+    
+    for (int nbBranches = 0; nbBranches < 4; ++nbBranches)
+    {
+
+        GeometryObject branche1;
+        branche1.nbVertices = cylinder.getNbVertices();
+        branche1.vao = generateVAO(cylinder);
+        branche1.localMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
+        branche1.localMatrix = glm::scale(branche1.localMatrix, glm::vec3(0.2f, 0.2f, 1.0f));
+        branche1.localMatrix = glm::scale(branche1.localMatrix, glm::vec3(0.5f, 0.5f, 0.7f));
+        branche1.propagatedMatrix = glm::rotate(branche1.propagatedMatrix, glm::radians(90.0f*nbBranches), glm::vec3(0, 1, 0));
+        branche1.propagatedMatrix = glm::rotate(branche1.propagatedMatrix, glm::radians(45.0f), glm::vec3(1, 0, 0));
+        branche1.propagatedMatrix = glm::translate(branche1.propagatedMatrix, glm::vec3(0.0f, 0.4f, 0.0f));
+        
+
+        for (int nbBrindilles = 0; nbBrindilles < 4; ++nbBrindilles)
+        {
+            GeometryObject feuille1;
+            feuille1.nbVertices = sphere.getNbVertices();
+            feuille1.vao = generateVAO(sphere);
+            feuille1.localMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.20f, 0.20f, 0.20f));
+            feuille1.propagatedMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.25f, 0.0f));
+
+            GeometryObject brindille1;
+            brindille1.nbVertices = cylinder.getNbVertices();
+            brindille1.vao = generateVAO(cylinder);
+            brindille1.localMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0));
+            brindille1.localMatrix = glm::scale(brindille1.localMatrix, glm::vec3(0.2f, 0.2f, 1.0f));
+            brindille1.localMatrix = glm::scale(brindille1.localMatrix, glm::vec3(0.2f, 0.2f, 0.4f));
+            brindille1.propagatedMatrix = glm::rotate(brindille1.propagatedMatrix, glm::radians(90.0f*nbBrindilles), glm::vec3(0, 1, 0));
+            brindille1.propagatedMatrix = glm::rotate(brindille1.propagatedMatrix, glm::radians(45.0f), glm::vec3(1, 0, 0));
+            brindille1.propagatedMatrix = glm::translate(brindille1.propagatedMatrix, glm::vec3(0.0f, 0.2f, 0.0f));
+            brindille1.children.push_back(feuille1);
+
+            branche1.children.push_back(brindille1);
+        }
+
+        tronc.children.push_back(branche1);
+    }
 
     //Shaders
     FILE* vertFile = fopen("Shaders/color.vert", "r");
