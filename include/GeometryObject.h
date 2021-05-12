@@ -45,6 +45,8 @@ class GeometryObject
         void transform(TransformationType type, Transformation transformation, glm::vec3 vector, float angle=0);
 
     protected: 
+        GeometryObject(){}
+
         GLuint m_vao;
         int m_nbVertices = 0;
         glm::mat4 m_propagatedMatrix = glm::mat4(1.0f);

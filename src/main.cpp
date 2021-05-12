@@ -23,9 +23,8 @@
 #include "Sphere.h"
 #include "Cylinder.h"
 
-
 #include "GeometryObject.h"
-
+#include "Tree.h"
 
 #include "logger.h"
 
@@ -106,53 +105,7 @@ int main(int argc, char *argv[])
 
     //From here you can load your OpenGL objects, like VBO, Shaders, etc.
 
-    Cube cube;
-    Sphere sphere(32,32);
-    Cylinder cylinder(32);
-
-    // GeometryObject head(sphere);
-    // head.transform(local, scale, glm::vec3(0.40f, 0.50f, 0.40f));
-    // head.transform(relative, rotate, glm::vec3(0.0f, 0.0f, 1.0f), 45.0f);
-    // head.transform(relative, translate, glm::vec3(0.0f, 0.8f, 0.0f));
-
-
-    GeometryObject tronc(cylinder);
-    tronc.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
-    tronc.transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
-    
-    for (int nbBranches = 0; nbBranches < 4; ++nbBranches)
-    {
-
-        GeometryObject branche1(cylinder);
-        branche1.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
-        branche1.transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
-        branche1.transform(local, scale, glm::vec3(0.5f, 0.5f, 0.7f));
-        branche1.transform(relative, rotate, glm::vec3(0, 1, 0), 90.0f*nbBranches);
-        branche1.transform(relative, rotate, glm::vec3(1, 0, 0), 45.0f);
-        branche1.transform(relative, translate, glm::vec3(0.0f, 0.4f, 0.0f));
-        
-
-        for (int nbBrindilles = 0; nbBrindilles < 4; ++nbBrindilles)
-        {
-            GeometryObject feuille1(sphere);
-            feuille1.transform(local, scale, glm::vec3(0.20f, 0.20f, 0.20f));
-            feuille1.transform(relative, translate, glm::vec3(0.0f, 0.25f, 0.0f));
-
-            GeometryObject brindille1(cylinder);
-            brindille1.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
-            brindille1.transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
-            brindille1.transform(local, scale, glm::vec3(0.2f, 0.2f, 0.4f));
-            brindille1.transform(relative, rotate, glm::vec3(0, 1, 0), 90.0f*nbBrindilles );
-            brindille1.transform(relative, rotate, glm::vec3(1, 0, 0), 45.0f );
-            brindille1.transform(relative, translate, glm::vec3(0.0f, 0.2f, 0.0f));
-
-            brindille1.getChildren()->push_back(feuille1);
-
-            branche1.getChildren()->push_back(brindille1);
-        }
-
-        tronc.getChildren()->push_back(branche1);
-    }
+    GeometryObject* tree1 = new Tree();
 
 
     //Shaders
@@ -244,7 +197,8 @@ int main(int argc, char *argv[])
         std::stack<glm::mat4> mvpStack;
         mvpStack.push(projectionMatrix * glm::inverse(cameraMatrix));
 
-        draw(shader, mvpStack, tronc);
+
+        draw(shader, mvpStack, *tree1);
         
         //Display on screen (swap the buffer on screen and the buffer you are drawing on)
         SDL_GL_SwapWindow(window);
