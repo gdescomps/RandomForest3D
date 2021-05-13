@@ -8,7 +8,12 @@ class Tree : public GeometryObject
 {
     public:
         /* \brief The constructor.*/
-        Tree();    
+        Tree();
+
+    private:
+    	void addLeaf(GeometryObject* branch, float size);
+    	void addBranch(GeometryObject* branch, float size, float lenght, float angle, float inclination, bool isEnd);
+    	void addNode(GeometryObject* branch, float size, float lenght, int nbBranches, bool isEnd);   
 };
 
 #endif

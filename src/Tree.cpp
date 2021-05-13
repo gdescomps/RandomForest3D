@@ -8,8 +8,7 @@
 Tree::Tree()
 {
 	Cylinder cylinder(32);
-	Sphere sphere(32,32);
-
+	
 	this->m_vao = generateVAO(cylinder);
     this->m_nbVertices = cylinder.getNbVertices();
 
@@ -17,38 +16,46 @@ Tree::Tree()
     this->transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
     this->transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
     
-    for (int nbBranches = 0; nbBranches < 4; ++nbBranches)
+    addNode(this, 0.5f, 0.6f, 6, false);
+
+}
+
+void Tree::addNode(GeometryObject* branch, float size, float lenght, int nbBranches, bool isEnd){
+    float step = 360.0f/nbBranches;
+    for (int i = 0; i < nbBranches; ++i)
     {
-
-        GeometryObject branche1(cylinder);
-        branche1.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
-        branche1.transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
-        branche1.transform(local, scale, glm::vec3(0.5f, 0.5f, 0.7f));
-        branche1.transform(relative, rotate, glm::vec3(0, 1, 0), 90.0f*nbBranches);
-        branche1.transform(relative, rotate, glm::vec3(1, 0, 0), 45.0f);
-        branche1.transform(relative, translate, glm::vec3(0.0f, 0.4f, 0.0f));
+        addBranch(branch, size, lenght, step*i, 45.0f, isEnd);
         
+    }
+}
 
-        for (int nbBrindilles = 0; nbBrindilles < 4; ++nbBrindilles)
-        {
-            GeometryObject feuille1(sphere);
-            feuille1.transform(local, scale, glm::vec3(0.20f, 0.20f, 0.20f));
-            feuille1.transform(relative, translate, glm::vec3(0.0f, 0.25f, 0.0f));
+void Tree::addBranch(GeometryObject* branch, float size, float lenght, float angle, float inclination, bool isEnd){
+    Cylinder cylinder(32);
 
-            GeometryObject brindille1(cylinder);
-            brindille1.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
-            brindille1.transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
-            brindille1.transform(local, scale, glm::vec3(0.2f, 0.2f, 0.4f));
-            brindille1.transform(relative, rotate, glm::vec3(0, 1, 0), 90.0f*nbBrindilles );
-            brindille1.transform(relative, rotate, glm::vec3(1, 0, 0), 45.0f );
-            brindille1.transform(relative, translate, glm::vec3(0.0f, 0.2f, 0.0f));
+    GeometryObject subBranch(cylinder);
+    subBranch.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
+    subBranch.transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
+    subBranch.transform(local, scale, glm::vec3(size, size, lenght));
+    subBranch.transform(relative, translate, glm::vec3(0.0f, lenght*0.5f, 0.0f));
+    subBranch.transform(relative, rotate, glm::vec3(0, 1, 0), angle);
+    subBranch.transform(relative, rotate, glm::vec3(1, 0, 0), inclination);
+    subBranch.transform(relative, translate, glm::vec3(0.0f, lenght*0.5f, 0.0f));
 
-            brindille1.getChildren()->push_back(feuille1);
-
-            branche1.getChildren()->push_back(brindille1);
-        }
-
-        this->getChildren()->push_back(branche1);
+    if(isEnd){
+        addLeaf(&subBranch, 1.0f);
+    }
+    else{
+        addNode(&subBranch, size*0.5, lenght*0.7, 5, true);
     }
 
+    branch->getChildren()->push_back(subBranch);
+}
+
+void Tree::addLeaf(GeometryObject* branch, float size){
+    Sphere sphere(32,32);
+    GeometryObject feuille1(sphere);
+    feuille1.transform(local, scale, glm::vec3(0.20f, 0.20f, 0.20f));
+    feuille1.transform(relative, translate, glm::vec3(0.0f, 0.25f, 0.0f));
+
+    branch->getChildren()->push_back(feuille1);
 }
