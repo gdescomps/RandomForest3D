@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 
     //From here you can load your OpenGL objects, like VBO, Shaders, etc.
 
-    GeometryObject* tree1 = new Tree();
+    GeometryObject* tree1 = new Tree(1.0f, 4.0f, 3);
 
 
     //Shaders
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
         direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
         cameraFront = glm::normalize(direction);
 
-        cameraPos.y=0;
+        cameraPos.y=1.80f;
 
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glm::mat4 projectionMatrix = glm::perspective(glm::radians(45.0f), (float)WIDTH/(float)HEIGHT, 0.1f, 100.0f);
