@@ -47,12 +47,7 @@ void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object
             GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); 
             glm::mat4 mvp = mvpStack.top() * object.getPropagatedMatrix() * object.getLocalMatrix();
             glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); 
-            
-            int m = object.getNbVertices();
-            // GLint vUV = glGetAttribLocation(shader->getProgramID(), "vUV");
-            // glVertexAttribPointer(vUV, 2, GL_FLOAT, GL_FALSE, 0, INDICE_TO_PTR((3 + 3) * sizeof(float) *m ));
-            // glEnableVertexAttribArray(vUV);
-            // glBindTexture(GL_TEXTURE_2D, vUV);
+
 
             if (object.getTextureId() == 1){
                 // active texture  1 :
@@ -174,7 +169,7 @@ int main(int argc, char *argv[])
 
     // texture 1:
 
-    SDL_Surface* img = IMG_Load("bin/texturefeuille.jpg");
+    SDL_Surface* img = IMG_Load("textures/texturefeuille.jpg");
     SDL_Surface* rgbImg = SDL_ConvertSurfaceFormat(img, SDL_PIXELFORMAT_RGBA32, 0);
 
     GLuint texture1;
@@ -206,7 +201,7 @@ int main(int argc, char *argv[])
 
         //texture 2 :
 
-    SDL_Surface* img2 = IMG_Load("bin/textureTree.png");
+    SDL_Surface* img2 = IMG_Load("textures/textureTree.png");
     SDL_Surface* rgbImg2 = SDL_ConvertSurfaceFormat(img2, SDL_PIXELFORMAT_RGBA32, 0);
 
 
