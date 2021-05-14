@@ -61,7 +61,7 @@ Tree::Tree()
     
     this->m_vao = generateVAO(cylinder);
     this->m_nbVertices = cylinder.getNbVertices();
-
+    this->setTextureId(0);
     
     this->transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
     this->transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
