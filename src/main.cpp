@@ -5,6 +5,7 @@
 //OpenGL Libraries
 #include <GL/glew.h>
 #include <GL/gl.h>
+#include <SDL2/SDL_image.h>
 
 //GML libraries
 //Necessary includes for both using glm::<type> but also for the corresponding functions
@@ -35,7 +36,7 @@
 #define INDICE_TO_PTR(x) ((void*)(x))
 
 
-void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object){
+void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object, GLuint &texture1, GLuint &texture2){
 
     // object.getTextureId()
     // = 0 -> écorce
@@ -46,6 +47,29 @@ void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object
             GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); 
             glm::mat4 mvp = mvpStack.top() * object.getPropagatedMatrix() * object.getLocalMatrix();
             glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); 
+            
+            int m = object.getNbVertices();
+            // GLint vUV = glGetAttribLocation(shader->getProgramID(), "vUV");
+            // glVertexAttribPointer(vUV, 2, GL_FLOAT, GL_FALSE, 0, INDICE_TO_PTR((3 + 3) * sizeof(float) *m ));
+            // glEnableVertexAttribArray(vUV);
+            // glBindTexture(GL_TEXTURE_2D, vUV);
+
+            if (object.getTextureId() == 1){
+                // active texture  1 :
+                // glUniform1i(texture1,0);
+                glUniform1i(glGetUniformLocation(shader->getProgramID(), "texture1"),0);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, texture1);
+
+            }
+            else if (object.getTextureId() == 0){
+            // active texture  2 :
+                // glUniform1i(texture2,0);
+                glUniform1i(glGetUniformLocation(shader->getProgramID(), "texture2"),0);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, texture2);
+            }
+        
 
             glDrawArrays(GL_TRIANGLES, 0, object.getNbVertices()); //Draw the triangle (three points which
             // ,→ starts at offset = 0 in the VBO). GL_TRIANGLES tells that we are reading
@@ -55,7 +79,7 @@ void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object
             
             mvpStack.push(mvpStack.top() * object.getPropagatedMatrix());
             for(GeometryObject child : *object.getChildren())
-                draw(shader, mvpStack, child);
+                draw(shader, mvpStack, child, texture1, texture2);
 
             mvpStack.pop(); 
 
@@ -144,6 +168,74 @@ int main(int argc, char *argv[])
     glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
 
+
+
+
+
+    // texture 1:
+
+    SDL_Surface* img = IMG_Load("bin/texturefeuille.jpg");
+    SDL_Surface* rgbImg = SDL_ConvertSurfaceFormat(img, SDL_PIXELFORMAT_RGBA32, 0);
+
+    GLuint texture1;
+
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    {
+
+        // glActiveTexture(GL_TEXTURE0);
+        // glActiveTexture(GL_TEXTURE1);
+
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, rgbImg->w, rgbImg->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)rgbImg->pixels);
+
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+
+
+    }
+    SDL_FreeSurface(img);
+    
+
+        //texture 2 :
+
+    SDL_Surface* img2 = IMG_Load("bin/textureTree.png");
+    SDL_Surface* rgbImg2 = SDL_ConvertSurfaceFormat(img2, SDL_PIXELFORMAT_RGBA32, 0);
+
+
+    GLuint texture2;
+
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    {
+
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, rgbImg2->w, rgbImg2->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)rgbImg2->pixels);
+
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+
+
+    }
+    SDL_FreeSurface(img2);
+
+
+
+
     //Main application loop
     while(isOpened)
     {
@@ -222,7 +314,7 @@ int main(int argc, char *argv[])
         mvpStack.push(projectionMatrix * view);
         
 
-        draw(shader, mvpStack, *tree1);
+        draw(shader, mvpStack, *tree1, texture1, texture2);
         
 
         //Display on screen (swap the buffer on screen and the buffer you are drawing on)
