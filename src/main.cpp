@@ -36,8 +36,22 @@
 #define TIME_PER_FRAME_MS  (1.0f/FRAMERATE * 1e3)
 #define INDICE_TO_PTR(x) ((void*)(x))
 
+    struct Material{
+        float ka = 0.20;
+        float kd = 0.50;
+        float ks = 0.40;
+        float alpha = 20;
+        glm::vec3 Color = glm::vec3(1.0, 0.0, 0.0);
+    };
 
-void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object, GLuint &texture1, GLuint &texture2){
+
+    struct Light {
+        glm::vec3 lightPosition = glm::vec3(10.0, 10.0, 20.0);
+        glm::vec3 lightColor = glm::vec3(1.0, 1.0, 1.0);
+    };
+
+
+void draw(glm::mat4 modelMatrix, glm::mat4 inv_modelMatrix, glm::vec3 camera, Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object, GLuint &texture1, GLuint &texture2, Material& material, Light& light){
 
     // object.getTextureId()
     // = 0 -> écorce
@@ -45,6 +59,37 @@ void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object
 
     glUseProgram(shader->getProgramID());
     glBindVertexArray(object.getVAO());
+
+        GLint color = glGetUniformLocation(shader->getProgramID(), "color");
+        glUniform3fv(color, 1, glm::value_ptr(material.Color));
+
+        GLint ka = glGetUniformLocation(shader->getProgramID(), "ka");
+        glUniform1f(ka, material.ka);
+
+        GLint kd = glGetUniformLocation(shader->getProgramID(), "kd");
+        glUniform1f(kd, material.kd);
+
+        GLint ks = glGetUniformLocation(shader->getProgramID(), "ks");
+        glUniform1f(ks, material.ks);
+
+        GLint alpha = glGetUniformLocation(shader->getProgramID(), "alpha");
+        glUniform1f(alpha, material.alpha);
+
+        GLint lightcolor = glGetUniformLocation(shader->getProgramID(), "lightcolor");
+        glUniform3fv(lightcolor, 1, glm::value_ptr(light.lightColor));
+
+        GLint lightposition = glGetUniformLocation(shader->getProgramID(), "lightposition");
+        glUniform3fv(lightposition, 1, glm::value_ptr(light.lightPosition));
+
+        GLint modelmatrix = glGetUniformLocation(shader->getProgramID(), "modelmatrix");
+        glUniformMatrix4fv(modelmatrix, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+
+        GLint inv_modelmatrix = glGetUniformLocation(shader->getProgramID(), "inv_modelmatrix");
+        glUniformMatrix3fv(inv_modelmatrix, 1, GL_FALSE, glm::value_ptr(inv_modelMatrix));
+
+        GLint cameraposition = glGetUniformLocation(shader->getProgramID(), "cameraposition");
+        glUniform3fv(cameraposition, 1, glm::value_ptr(camera));
+
             GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); 
             glm::mat4 mvp = mvpStack.top() * object.getPropagatedMatrix() * object.getLocalMatrix();
             glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); 
@@ -75,7 +120,7 @@ void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object
             
             mvpStack.push(mvpStack.top() * object.getPropagatedMatrix());
             for(GeometryObject child : *object.getChildren())
-                draw(shader, mvpStack, child, texture1, texture2);
+                draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, child, texture1, texture2, material, light);
 
             mvpStack.pop(); 
 
@@ -125,7 +170,7 @@ int main(int argc, char *argv[])
     glViewport(0, 0, WIDTH, HEIGHT); //Draw on ALL the screen
 
     //The OpenGL background color (RGBA, each component between 0.0f and 1.0f)
-    glClearColor(0.52, 0.80, 0.92, 1.0); //Blue sky
+    glClearColor(0.66, 0.37, 0.12, 1.0); //Blue sky
     // glClearColor(0.2, 0.314, 0.361, 1.0); //Full Black
 
     glEnable(GL_DEPTH_TEST); //Active the depth test
@@ -136,14 +181,14 @@ int main(int argc, char *argv[])
     Circle circle(32);
     GeometryObject floor(circle);
     floor.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
-    floor.transform(local, scale, glm::vec3(50, 50, 0));
+    floor.transform(local, scale, glm::vec3(100, 100, 0));
     floor.setTextureId(1);
 
      std::vector<GeometryObject*> forest;
 
-    for (int z = 0; z < 2; ++z)
+    for (int z = 0; z < 5; ++z)
     {
-        for (int x = 0; x < 2; ++x)
+        for (int x = 0; x < 5; ++x)
         {
             GeometryObject* tree1 = new Tree();
             tree1->transform(relative, translate, glm::vec3(x*4.0f,0.f,z*4.f));
@@ -179,6 +224,9 @@ int main(int argc, char *argv[])
     glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f);
     glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
+
+    Material material;
+    Light light;
 
 
 
@@ -325,9 +373,20 @@ int main(int argc, char *argv[])
         std::stack<glm::mat4> mvpStack;
         mvpStack.push(projectionMatrix * view);
 
-        draw(shader, mvpStack, floor, texture1, texture2);
+        glm::mat4 modelMatrix(1.0f);
+        glm::mat4 viewMatrix(1.0f);
+        glm::mat4 projectionMatrix1(1.0f);
+
+        // glm::mat4 mvp = projectionMatrix1 * glm::inverse(viewMatrix) * modelMatrix;
+
+        glm::mat3 inv_modelMatrix = glm::inverse(glm::mat3(modelMatrix));
+
+        glm::vec4 tmp = glm::inverse(projectionMatrix1 * glm::inverse(viewMatrix)) * glm::vec4(0, 0, -1, 1);
+        glm::vec3 camera = glm::vec3(tmp) / tmp.w;
+
+        draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, floor, texture1, texture2, material, light);
         for(GeometryObject* tree : forest){
-            draw(shader, mvpStack, *tree, texture1, texture2);
+            draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, *tree, texture1, texture2, material, light);
         }
 
         

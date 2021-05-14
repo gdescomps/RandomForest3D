@@ -6,8 +6,13 @@ attribute vec3 vNormal;
 attribute vec2 vUV;
 
 uniform mat4 uMVP;
+uniform mat4 modelmatrix;
+uniform mat3 inv_modelmatrix;
 
-// varying vec4 varyColor; 
+
+
+varying vec3 varyPosition; 
+varying vec3 varyNormal;
 varying vec2 texture; 
 
 
@@ -15,6 +20,12 @@ varying vec2 texture;
 void main()
 {
 	gl_Position = uMVP * vec4(vPosition, 1.0);
-    // varyColor = vec4((vNormal+vec3(1,1,1))/2.0, 1.0);
+    
+	vec4 tmp = modelmatrix * vec4(vPosition, 1.0);
+	tmp = tmp / tmp.w;
+	varyPosition=tmp.xyz;
+    
+    varyNormal = normalize(transpose(inv_modelmatrix)*vNormal);
+    
     texture = vUV;
 }
