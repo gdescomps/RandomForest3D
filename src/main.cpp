@@ -51,7 +51,7 @@
     };
 
 
-void draw(glm::mat4 modelMatrix, glm::mat4 inv_modelMatrix, glm::vec3 camera, Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object, GLuint &texture1, GLuint &texture2, Material& material, Light& light){
+void draw(glm::mat4 modelMatrix, glm::mat4 inv_modelMatrix, glm::vec3 camera, Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object, GLuint &texture1, GLuint &texture2, GLuint &texture3, Material& material, Light& light){
 
     // object.getTextureId()
     // = 0 -> écorce
@@ -110,6 +110,14 @@ void draw(glm::mat4 modelMatrix, glm::mat4 inv_modelMatrix, glm::vec3 camera, Sh
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, texture2);
             }
+            else if (object.getTextureId() == 2){
+            // active texture  3 :
+                // glUniform1i(texture2,0);
+                glUniform1i(glGetUniformLocation(shader->getProgramID(), "texture3"),0);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, texture3);
+            }
+        
         
 
             glDrawArrays(GL_TRIANGLES, 0, object.getNbVertices()); //Draw the triangle (three points which
@@ -120,7 +128,7 @@ void draw(glm::mat4 modelMatrix, glm::mat4 inv_modelMatrix, glm::vec3 camera, Sh
             
             mvpStack.push(mvpStack.top() * object.getPropagatedMatrix());
             for(GeometryObject child : *object.getChildren())
-                draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, child, texture1, texture2, material, light);
+                draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, child, texture1, texture2, texture3, material, light);
 
             mvpStack.pop(); 
 
@@ -182,7 +190,7 @@ int main(int argc, char *argv[])
     GeometryObject floor(circle);
     floor.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
     floor.transform(local, scale, glm::vec3(100, 100, 0));
-    floor.setTextureId(1);
+    floor.setTextureId(2);
 
      std::vector<GeometryObject*> forest;
 
@@ -295,6 +303,38 @@ int main(int argc, char *argv[])
 
 
 
+    //texture 3 :
+
+    SDL_Surface* img3 = IMG_Load("textures/textureTronc2.jpg");
+    SDL_Surface* rgbImg3 = SDL_ConvertSurfaceFormat(img3, SDL_PIXELFORMAT_RGBA32, 0);
+
+
+    GLuint texture3;
+
+    glGenTextures(1, &texture3);
+    glBindTexture(GL_TEXTURE_2D, texture3);
+    {
+
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, rgbImg3->w, rgbImg3->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)rgbImg3->pixels);
+
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+
+
+    }
+    SDL_FreeSurface(img3);
+
+
+
+
 
     //Main application loop
     while(isOpened)
@@ -384,9 +424,9 @@ int main(int argc, char *argv[])
         glm::vec4 tmp = glm::inverse(projectionMatrix1 * glm::inverse(viewMatrix)) * glm::vec4(0, 0, -1, 1);
         glm::vec3 camera = glm::vec3(tmp) / tmp.w;
 
-        draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, floor, texture1, texture2, material, light);
+        draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, floor, texture1, texture2, texture3, material, light);
         for(GeometryObject* tree : forest){
-            draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, *tree, texture1, texture2, material, light);
+            draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, *tree, texture1, texture2, texture3, material, light);
         }
 
         
