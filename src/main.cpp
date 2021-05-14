@@ -108,9 +108,18 @@ int main(int argc, char *argv[])
 
     //From here you can load your OpenGL objects, like VBO, Shaders, etc.
 
-    GeometryObject* tree1 = new Tree(1.0f, 4.0f, 3);
+    std::vector<GeometryObject*> forest;
 
-
+    for (int z = 0; z < 5; ++z)
+    {
+        for (int x = 0; x < 5; ++x)
+        {
+            GeometryObject* tree1 = new Tree();
+            tree1->transform(relative, translate, glm::vec3(x*4.0f,0.f,z*4.f));
+            forest.push_back(tree1);
+        }
+    }
+    
     //Shaders
     FILE* vertFile = fopen("Shaders/color.vert", "r");
     FILE* fragFile = fopen("Shaders/color.frag", "r");
@@ -218,7 +227,11 @@ int main(int argc, char *argv[])
         mvpStack.push(projectionMatrix * view);
         
 
-        draw(shader, mvpStack, *tree1);
+        for(GeometryObject* tree : forest){
+            draw(shader, mvpStack, *tree);
+        }
+        // draw(shader, mvpStack, *tree2);
+        // draw(shader, mvpStack, *tree3);
         
 
         //Display on screen (swap the buffer on screen and the buffer you are drawing on)
