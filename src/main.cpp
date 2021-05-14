@@ -22,6 +22,7 @@
 #include "Cube.h"
 #include "Sphere.h"
 #include "Cylinder.h"
+#include "Circle.h"
 
 #include "GeometryObject.h"
 #include "Tree.h"
@@ -108,11 +109,16 @@ int main(int argc, char *argv[])
 
     //From here you can load your OpenGL objects, like VBO, Shaders, etc.
 
-    std::vector<GeometryObject*> forest;
+    Circle circle(32);
+    GeometryObject floor(circle);
+    floor.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
+    floor.transform(local, scale, glm::vec3(50, 50, 0));
 
-    for (int z = 0; z < 5; ++z)
+     std::vector<GeometryObject*> forest;
+
+    for (int z = 0; z < 2; ++z)
     {
-        for (int x = 0; x < 5; ++x)
+        for (int x = 0; x < 2; ++x)
         {
             GeometryObject* tree1 = new Tree();
             tree1->transform(relative, translate, glm::vec3(x*4.0f,0.f,z*4.f));
@@ -226,7 +232,7 @@ int main(int argc, char *argv[])
         std::stack<glm::mat4> mvpStack;
         mvpStack.push(projectionMatrix * view);
         
-
+        draw(shader, mvpStack, floor);
         for(GeometryObject* tree : forest){
             draw(shader, mvpStack, *tree);
         }
