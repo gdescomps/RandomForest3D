@@ -11,7 +11,7 @@ Tree::Tree(float size, float height, int nbNode)
 	
 	this->m_vao = generateVAO(cylinder);
     this->m_nbVertices = cylinder.getNbVertices();
-
+    this->setTextureId(0);
     
     this->transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
     this->transform(local, scale, glm::vec3(0.2f, 0.2f, height));
@@ -42,6 +42,8 @@ void Tree::addBranch(GeometryObject* branch, float size, float height, float par
     Cylinder cylinder(32);
 
     GeometryObject subBranch(cylinder);
+    subBranch.setTextureId(0);
+
     subBranch.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
     subBranch.transform(local, scale, glm::vec3(0.2f, 0.2f, 1.0f));
     subBranch.transform(local, scale, glm::vec3(size, size, lenght));
@@ -64,6 +66,8 @@ void Tree::addBranch(GeometryObject* branch, float size, float height, float par
 void Tree::addLeaf(GeometryObject* branch, float size, float parentHeight){
     Sphere sphere(32,32);
     GeometryObject leaf(sphere);
+    leaf.setTextureId(1);
+
     leaf.transform(local, scale, glm::vec3(size, size, size));
     leaf.transform(relative, translate, glm::vec3(0.0f, parentHeight*0.5f, 0.0f));
 

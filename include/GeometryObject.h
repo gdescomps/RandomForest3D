@@ -32,6 +32,9 @@ class GeometryObject
          * \return the number of vertices this geometry contains*/
         int getNbVertices() const {return m_nbVertices;}
 
+        int getTextureId() const {return m_textureId;}
+        void setTextureId(int id) {m_textureId=id;}
+
         GLuint getVAO() const {return m_vao;}
 
         glm::mat4 getPropagatedMatrix() {return m_propagatedMatrix;}
@@ -52,6 +55,8 @@ class GeometryObject
         glm::mat4 m_propagatedMatrix = glm::mat4(1.0f);
         glm::mat4 m_localMatrix      = glm::mat4(1.0f);
         std::vector<GeometryObject> m_children;
+
+        int m_textureId;
 };
 
 #endif

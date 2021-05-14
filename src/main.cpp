@@ -37,6 +37,10 @@
 
 void draw(Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object){
 
+    // object.getTextureId()
+    // = 0 -> écorce
+    // = 1 -> feuilles
+
     glUseProgram(shader->getProgramID());
     glBindVertexArray(object.getVAO());
             GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); 
