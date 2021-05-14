@@ -9,10 +9,10 @@ varying vec2 texture;
 uniform sampler2D texture1;
 uniform sampler2D texture2;
 
-uniform  float ka = 0.20;
-uniform  float kd = 0.50;
-uniform  float ks = 0.40;
-uniform  float alpha = 20;
+uniform  float ka = 0.10;
+uniform  float kd = 0.05;
+uniform  float ks = 0.2;
+uniform  float alpha = 0.2;
 
 uniform vec3 color;
 
@@ -39,6 +39,6 @@ void main()
 	vec3 Specular = ks*pow(max(0.0,dot(R,V)),alpha)*lightcolor;
 
 
-    gl_FragColor = (texture2D(texture1,texture)+texture2D(texture2,texture))*vec4(Ambiant+Diffuse+Specular,1.0);
+    gl_FragColor = (texture2D(texture1,texture)+texture2D(texture2,texture))+vec4(Ambiant+Diffuse+Specular,1.0);
 
 }

@@ -82,10 +82,10 @@ void draw(glm::mat4 modelMatrix, glm::mat4 inv_modelMatrix, glm::vec3 camera, Sh
         glUniform3fv(lightposition, 1, glm::value_ptr(light.lightPosition));
 
         GLint modelmatrix = glGetUniformLocation(shader->getProgramID(), "modelmatrix");
-        glUniformMatrix4fv(modelmatrix, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+        glUniformMatrix4fv(modelmatrix, 1, GL_FALSE, glm::value_ptr(object.getLocalMatrix()));
 
         GLint inv_modelmatrix = glGetUniformLocation(shader->getProgramID(), "inv_modelmatrix");
-        glUniformMatrix3fv(inv_modelmatrix, 1, GL_FALSE, glm::value_ptr(inv_modelMatrix));
+        glUniformMatrix3fv(inv_modelmatrix, 1, GL_FALSE, glm::value_ptr(glm::inverse(object.getLocalMatrix())));
 
         GLint cameraposition = glGetUniformLocation(shader->getProgramID(), "cameraposition");
         glUniform3fv(cameraposition, 1, glm::value_ptr(camera));
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
     glViewport(0, 0, WIDTH, HEIGHT); //Draw on ALL the screen
 
     //The OpenGL background color (RGBA, each component between 0.0f and 1.0f)
-    glClearColor(0.66, 0.37, 0.12, 1.0); //Blue sky
+    glClearColor(0.5, 0.8, 0.73, 1.0); //Blue sky
     // glClearColor(0.2, 0.314, 0.361, 1.0); //Full Black
 
     glEnable(GL_DEPTH_TEST); //Active the depth test
@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
 
         //texture 2 :
 
-    SDL_Surface* img2 = IMG_Load("textures/textureTree.png");
+    SDL_Surface* img2 = IMG_Load("textures/textureTronc3.jpg");
     SDL_Surface* rgbImg2 = SDL_ConvertSurfaceFormat(img2, SDL_PIXELFORMAT_RGBA32, 0);
 
 
