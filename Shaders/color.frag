@@ -10,10 +10,10 @@ uniform sampler2D texture1;
 uniform sampler2D texture2;
 uniform sampler2D texture3;
 
-uniform  float ka = 0.10;
-uniform  float kd = 0.05;
-uniform  float ks = 0.2;
-uniform  float alpha = 0.2;
+uniform  float ka;
+uniform  float kd;
+uniform  float ks;
+uniform  float alpha;
 
 uniform vec3 color;
 
@@ -22,12 +22,8 @@ uniform vec3 lightposition;
 
 uniform vec3 cameraposition;
 
-
-
 void main()
 {
-    
-
     vec3 L = normalize(lightposition - varyPosition);
 	vec3 N = varyNormal;
 	vec3 R = normalize(reflect(-L,N));
@@ -38,7 +34,6 @@ void main()
 	vec3 Diffuse = kd*max(0.0,dot(N,L))*color*lightcolor;
 
 	vec3 Specular = ks*pow(max(0.0,dot(R,V)),alpha)*lightcolor;
-
 
     gl_FragColor = (texture2D(texture1,texture)+texture2D(texture2,texture)+texture2D(texture3,texture))+vec4(Ambiant+Diffuse+Specular,1.0);
 

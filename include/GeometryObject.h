@@ -32,7 +32,11 @@ class GeometryObject
          * \return the number of vertices this geometry contains*/
         int getNbVertices() const {return m_nbVertices;}
 
+        /* \brief Get the texture id of this GeometryObject
+         * \return the texture id of this GeometryObject*/
         int getTextureId() const {return m_textureId;}
+
+        /* \brief Set the texture id of this GeometryObject */
         void setTextureId(int id) {m_textureId=id;}
 
         GLuint getVAO() const {return m_vao;}

@@ -9,8 +9,6 @@ uniform mat4 uMVP;
 uniform mat4 modelmatrix;
 uniform mat3 inv_modelmatrix;
 
-
-
 varying vec3 varyPosition; 
 varying vec3 varyNormal;
 varying vec2 texture; 

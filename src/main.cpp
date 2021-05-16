@@ -36,108 +36,102 @@
 #define TIME_PER_FRAME_MS  (1.0f/FRAMERATE * 1e3)
 #define INDICE_TO_PTR(x) ((void*)(x))
 
-    struct Material{
-        float ka = 0.20;
-        float kd = 0.50;
-        float ks = 0.40;
-        float alpha = 20;
-        glm::vec3 Color = glm::vec3(1.0, 0.0, 0.0);
-    };
+struct Material{
+    float ka = 0.20;
+    float kd = 0.50;
+    float ks = 0.40;
+    float alpha = 20;
+    glm::vec3 Color = glm::vec3(0, 0, 0);
+};
 
 
-    struct Light {
-        glm::vec3 lightPosition = glm::vec3(10.0, 10.0, 20.0);
-        glm::vec3 lightColor = glm::vec3(1.0, 1.0, 1.0);
-    };
+struct Light {
+    glm::vec3 lightPosition = glm::vec3(100.0, 100.0, 100.0);
+    glm::vec3 lightColor = glm::vec3(0.80, 0.60, 0.30);
+};
 
 
-void draw(glm::mat4 modelMatrix, glm::mat4 inv_modelMatrix, glm::vec3 camera, Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object, GLuint &texture1, GLuint &texture2, GLuint &texture3, Material& material, Light& light){
-
-    // object.getTextureId()
-    // = 0 -> écorce
-    // = 1 -> feuilles
+void draw(glm::vec3 camera, Shader* shader, std::stack<glm::mat4>& mvpStack, GeometryObject object, GLuint &texture1, GLuint &texture2, GLuint &texture3, Material& material, Light& light){
 
     glUseProgram(shader->getProgramID());
     glBindVertexArray(object.getVAO());
 
-        GLint color = glGetUniformLocation(shader->getProgramID(), "color");
-        glUniform3fv(color, 1, glm::value_ptr(material.Color));
+    GLint color = glGetUniformLocation(shader->getProgramID(), "color");
+    glUniform3fv(color, 1, glm::value_ptr(material.Color));
 
-        GLint ka = glGetUniformLocation(shader->getProgramID(), "ka");
-        glUniform1f(ka, material.ka);
+    GLint ka = glGetUniformLocation(shader->getProgramID(), "ka");
+    glUniform1f(ka, material.ka);
 
-        GLint kd = glGetUniformLocation(shader->getProgramID(), "kd");
-        glUniform1f(kd, material.kd);
+    GLint kd = glGetUniformLocation(shader->getProgramID(), "kd");
+    glUniform1f(kd, material.kd);
 
-        GLint ks = glGetUniformLocation(shader->getProgramID(), "ks");
-        glUniform1f(ks, material.ks);
+    GLint ks = glGetUniformLocation(shader->getProgramID(), "ks");
+    glUniform1f(ks, material.ks);
 
-        GLint alpha = glGetUniformLocation(shader->getProgramID(), "alpha");
-        glUniform1f(alpha, material.alpha);
+    GLint alpha = glGetUniformLocation(shader->getProgramID(), "alpha");
+    glUniform1f(alpha, material.alpha);
 
-        GLint lightcolor = glGetUniformLocation(shader->getProgramID(), "lightcolor");
-        glUniform3fv(lightcolor, 1, glm::value_ptr(light.lightColor));
+    GLint lightcolor = glGetUniformLocation(shader->getProgramID(), "lightcolor");
+    glUniform3fv(lightcolor, 1, glm::value_ptr(light.lightColor));
 
-        GLint lightposition = glGetUniformLocation(shader->getProgramID(), "lightposition");
-        glUniform3fv(lightposition, 1, glm::value_ptr(light.lightPosition));
+    GLint lightposition = glGetUniformLocation(shader->getProgramID(), "lightposition");
+    glUniform3fv(lightposition, 1, glm::value_ptr(light.lightPosition));
 
-        GLint modelmatrix = glGetUniformLocation(shader->getProgramID(), "modelmatrix");
-        glUniformMatrix4fv(modelmatrix, 1, GL_FALSE, glm::value_ptr(object.getLocalMatrix()));
+    GLint modelmatrix = glGetUniformLocation(shader->getProgramID(), "modelmatrix");
+    glUniformMatrix4fv(modelmatrix, 1, GL_FALSE, glm::value_ptr(object.getLocalMatrix()));
 
-        GLint inv_modelmatrix = glGetUniformLocation(shader->getProgramID(), "inv_modelmatrix");
-        glUniformMatrix3fv(inv_modelmatrix, 1, GL_FALSE, glm::value_ptr(glm::inverse(object.getLocalMatrix())));
+    GLint inv_modelmatrix = glGetUniformLocation(shader->getProgramID(), "inv_modelmatrix");
+    glUniformMatrix3fv(inv_modelmatrix, 1, GL_FALSE, glm::value_ptr(glm::inverse(object.getLocalMatrix())));
 
-        GLint cameraposition = glGetUniformLocation(shader->getProgramID(), "cameraposition");
-        glUniform3fv(cameraposition, 1, glm::value_ptr(camera));
+    GLint cameraposition = glGetUniformLocation(shader->getProgramID(), "cameraposition");
+    glUniform3fv(cameraposition, 1, glm::value_ptr(camera));
 
-            GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); 
-            glm::mat4 mvp = mvpStack.top() * object.getPropagatedMatrix() * object.getLocalMatrix();
-            glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); 
+    GLint uMVP = glGetUniformLocation(shader->getProgramID(), "uMVP"); 
+    glm::mat4 mvp = mvpStack.top() * object.getPropagatedMatrix() * object.getLocalMatrix();
+    glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); 
 
+    // object.getTextureId()
+    // = 0 -> trunc
+    // = 1 -> leaf
+    // = 2 -> floor
 
-            if (object.getTextureId() == 1){
-                // active texture  1 :
-                // glUniform1i(texture1,0);
-                glUniform1i(glGetUniformLocation(shader->getProgramID(), "texture1"),0);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, texture1);
+    if (object.getTextureId() == 1){
+        // active texture  1 :
+        glUniform1i(glGetUniformLocation(shader->getProgramID(), "texture1"),0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
 
-            }
-            else if (object.getTextureId() == 0){
-            // active texture  2 :
-                // glUniform1i(texture2,0);
-                glUniform1i(glGetUniformLocation(shader->getProgramID(), "texture2"),0);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, texture2);
-            }
-            else if (object.getTextureId() == 2){
-            // active texture  3 :
-                // glUniform1i(texture2,0);
-                glUniform1i(glGetUniformLocation(shader->getProgramID(), "texture3"),0);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, texture3);
-            }
-        
-        
+    }
+    else if (object.getTextureId() == 0){
+       // active texture  2 :
+        glUniform1i(glGetUniformLocation(shader->getProgramID(), "texture2"),0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+    }
+    else if (object.getTextureId() == 2){
+       // active texture  3 :
+        glUniform1i(glGetUniformLocation(shader->getProgramID(), "texture3"),0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture3);
+    }
 
-            glDrawArrays(GL_TRIANGLES, 0, object.getNbVertices()); //Draw the triangle (three points which
-            // ,→ starts at offset = 0 in the VBO). GL_TRIANGLES tells that we are reading
-            // ,→ three points per three points to form a triangle. Other kind of "
-            // ,→ reading" exist, see glDrawArrays for more details.
-            // glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
-            
-            mvpStack.push(mvpStack.top() * object.getPropagatedMatrix());
-            for(GeometryObject child : *object.getChildren())
-                draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, child, texture1, texture2, texture3, material, light);
+    glDrawArrays(GL_TRIANGLES, 0, object.getNbVertices()); //Draw the triangle (three points which
+    // ,→ starts at offset = 0 in the VBO). GL_TRIANGLES tells that we are reading
+    // ,→ three points per three points to form a triangle. Other kind of "
+    // ,→ reading" exist, see glDrawArrays for more details.
+    
+    mvpStack.push(mvpStack.top() * object.getPropagatedMatrix());
+    for(GeometryObject child : *object.getChildren())
+        draw(camera, shader, mvpStack, child, texture1, texture2, texture3, material, light);
 
-            mvpStack.pop(); 
+    mvpStack.pop(); 
 
     glBindVertexArray(0);
     glUseProgram(0); //Close the program. This is heavy for the GPU. In reality we do this
     // ,→ only if we have to CHANGE the shader (hence we cache the current in-use shader)
     // ,→ . For this course however the performances are not so important.
 
-    // glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
+    glBindBuffer(GL_ARRAY_BUFFER, 0); //Close the VBO (not mandatory but recommended,→ for not modifying it accidently).
 }
 
 int main(int argc, char *argv[])
@@ -154,7 +148,7 @@ int main(int argc, char *argv[])
     }
 
     //Create a Window
-    SDL_Window* window = SDL_CreateWindow("VR Camera",                           //Titre
+    SDL_Window* window = SDL_CreateWindow("RandomTree3D",                           //Titre
                                           SDL_WINDOWPOS_UNDEFINED,               //X Position
                                           SDL_WINDOWPOS_UNDEFINED,               //Y Position
                                           WIDTH, HEIGHT,                         //Resolution
@@ -179,24 +173,25 @@ int main(int argc, char *argv[])
 
     //The OpenGL background color (RGBA, each component between 0.0f and 1.0f)
     glClearColor(0.5, 0.8, 0.73, 1.0); //Blue sky
-    // glClearColor(0.2, 0.314, 0.361, 1.0); //Full Black
 
     glEnable(GL_DEPTH_TEST); //Active the depth test
 
 
     //From here you can load your OpenGL objects, like VBO, Shaders, etc.
 
+    // Creating the floor
     Circle circle(32);
     GeometryObject floor(circle);
     floor.transform(local, rotate, glm::vec3(1, 0, 0), 90.0f);
     floor.transform(local, scale, glm::vec3(100, 100, 0));
     floor.setTextureId(2);
 
-     std::vector<GeometryObject*> forest;
+    // Creating the forest
+    std::vector<GeometryObject*> forest;
 
-    for (int z = 0; z < 5; ++z)
+    for (int z = 0; z < 6; ++z)
     {
-        for (int x = 0; x < 5; ++x)
+        for (int x = 0; x < 6; ++x)
         {
             GeometryObject* tree1 = new Tree();
             tree1->transform(relative, translate, glm::vec3(x*4.0f,0.f,z*4.f));
@@ -236,13 +231,10 @@ int main(int argc, char *argv[])
     Material material;
     Light light;
 
-
-
-
-
+    // Textures
     // texture 1:
 
-    SDL_Surface* img = IMG_Load("textures/texturefeuille.jpg");
+    SDL_Surface* img = IMG_Load("textures/textureLeaf.jpg");
     SDL_Surface* rgbImg = SDL_ConvertSurfaceFormat(img, SDL_PIXELFORMAT_RGBA32, 0);
 
     GLuint texture1;
@@ -250,11 +242,6 @@ int main(int argc, char *argv[])
     glGenTextures(1, &texture1);
     glBindTexture(GL_TEXTURE_2D, texture1);
     {
-
-        // glActiveTexture(GL_TEXTURE0);
-        // glActiveTexture(GL_TEXTURE1);
-
-
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -265,26 +252,20 @@ int main(int argc, char *argv[])
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, rgbImg->w, rgbImg->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)rgbImg->pixels);
 
         glGenerateMipmap(GL_TEXTURE_2D);
-
-
-
     }
     SDL_FreeSurface(img);
     
 
-        //texture 2 :
+    // texture 2 :
 
-    SDL_Surface* img2 = IMG_Load("textures/textureTronc3.jpg");
+    SDL_Surface* img2 = IMG_Load("textures/textureTrunc.jpg");
     SDL_Surface* rgbImg2 = SDL_ConvertSurfaceFormat(img2, SDL_PIXELFORMAT_RGBA32, 0);
-
 
     GLuint texture2;
 
     glGenTextures(1, &texture2);
     glBindTexture(GL_TEXTURE_2D, texture2);
     {
-
-
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -295,17 +276,12 @@ int main(int argc, char *argv[])
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, rgbImg2->w, rgbImg2->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)rgbImg2->pixels);
 
         glGenerateMipmap(GL_TEXTURE_2D);
-
-
-
     }
     SDL_FreeSurface(img2);
 
-
-
     //texture 3 :
 
-    SDL_Surface* img3 = IMG_Load("textures/textureTronc2.jpg");
+    SDL_Surface* img3 = IMG_Load("textures/textureFloor.jpg");
     SDL_Surface* rgbImg3 = SDL_ConvertSurfaceFormat(img3, SDL_PIXELFORMAT_RGBA32, 0);
 
 
@@ -314,8 +290,6 @@ int main(int argc, char *argv[])
     glGenTextures(1, &texture3);
     glBindTexture(GL_TEXTURE_2D, texture3);
     {
-
-
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -326,15 +300,8 @@ int main(int argc, char *argv[])
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, rgbImg3->w, rgbImg3->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)rgbImg3->pixels);
 
         glGenerateMipmap(GL_TEXTURE_2D);
-
-
-
     }
     SDL_FreeSurface(img3);
-
-
-
-
 
     //Main application loop
     while(isOpened)
@@ -360,16 +327,19 @@ int main(int argc, char *argv[])
                     break;
 
                 case SDL_MOUSEMOTION:
+                    // Looking around with the mouse
                     yaw+=event.motion.xrel*horizontalMouseSpeed;
                     pitch-=event.motion.yrel*verticalMouseSpeed;
                     break;
 
                 case SDL_KEYDOWN:
                     switch (event.key.keysym.sym) {
+                        // X-Ray mode
                         case SDLK_x:
                             xRay ? glPolygonMode(GL_FRONT_AND_BACK, GL_FILL) : glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
                             xRay = !xRay;
                             break;
+                        // Camera keyboard movement
                         case SDLK_q:
                             cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
                             break;
@@ -382,7 +352,7 @@ int main(int argc, char *argv[])
                         case SDLK_s:
                             cameraPos -= cameraSpeed * cameraFront;
                             break;
-
+                        // Exit program
                         case SDLK_ESCAPE:
                             return 0;
                             break;
@@ -394,43 +364,33 @@ int main(int argc, char *argv[])
         //Clear the screen : the depth buffer and the color buffer
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
+        // Lock pitch at up and down maximum
         if(pitch > 89.0f)
           pitch =  89.0f;
         if(pitch < -89.0f)
           pitch = -89.0f;
         
+        // Generate view matrix
         glm::vec3 direction;
         direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         direction.y = sin(glm::radians(pitch));
         direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
         cameraFront = glm::normalize(direction);
 
-        cameraPos.y=1.80f;
+        cameraPos.y=1.60f; // Locking camera y coordinate, we do not allow flying
 
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glm::mat4 projectionMatrix = glm::perspective(glm::radians(45.0f), (float)WIDTH/(float)HEIGHT, 0.1f, 100.0f);
 
+
         std::stack<glm::mat4> mvpStack;
         mvpStack.push(projectionMatrix * view);
 
-        glm::mat4 modelMatrix(1.0f);
-        glm::mat4 viewMatrix(1.0f);
-        glm::mat4 projectionMatrix1(1.0f);
-
-        // glm::mat4 mvp = projectionMatrix1 * glm::inverse(viewMatrix) * modelMatrix;
-
-        glm::mat3 inv_modelMatrix = glm::inverse(glm::mat3(modelMatrix));
-
-        glm::vec4 tmp = glm::inverse(projectionMatrix1 * glm::inverse(viewMatrix)) * glm::vec4(0, 0, -1, 1);
-        glm::vec3 camera = glm::vec3(tmp) / tmp.w;
-
-        draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, floor, texture1, texture2, texture3, material, light);
+        draw(cameraPos, shader, mvpStack, floor, texture1, texture2, texture3, material, light);
         for(GeometryObject* tree : forest){
-            draw(modelMatrix, inv_modelMatrix, camera, shader, mvpStack, *tree, texture1, texture2, texture3, material, light);
+            draw(cameraPos, shader, mvpStack, *tree, texture1, texture2, texture3, material, light);
         }
-
-        
-
+     
         //Display on screen (swap the buffer on screen and the buffer you are drawing on)
         SDL_GL_SwapWindow(window);
 
@@ -443,8 +403,6 @@ int main(int argc, char *argv[])
     }
     
     delete shader; //Delete the shader (usually at the end of the program)
-
-    // glDeleteBuffers(1, &head.vao); //Delete at the end the buffer
 
     //Free everything
     if(context != NULL)
